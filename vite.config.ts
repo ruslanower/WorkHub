@@ -10,8 +10,8 @@ export default defineConfig({
     },
   },
   server: {
-    port: 5173,
-    host: true,
+    host: '::',
+    port: 8080,
     cors: true,
   },
   build: {
