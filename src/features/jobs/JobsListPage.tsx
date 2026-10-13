@@ -8,15 +8,17 @@ import { formatCurrency, formatDate, getLocalizedText } from '@/i18n/formatters'
 import { Badge } from '@/components/ui/Badge';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { Briefcase, ArrowRight, Lock, Clock, CheckCircle2 } from 'lucide-react';
+import { Briefcase, ArrowRight, Lock, Clock, CheckCircle2, Filter } from 'lucide-react';
 
 export const JobsListPage: React.FC = () => {
   const { countryCode, pack, locale, currentUser, role } = useAppStore();
   const { t } = useTranslation();
+  const isUk = locale === 'uk';
 
   const [jobs, setJobs] = React.useState<Job[]>([]);
   const [tasks, setTasks] = React.useState<Map<string, Task>>(new Map());
   const [loading, setLoading] = React.useState(true);
+  const [showAllInCountry, setShowAllInCountry] = React.useState(true);
 
   React.useEffect(() => {
     const fetchJobs = async () => {
@@ -24,8 +26,8 @@ export const JobsListPage: React.FC = () => {
       try {
         const filter = {
           countryCode,
-          customerId: role === 'customer' && currentUser ? currentUser.id : undefined,
-          workerId: role === 'worker' && currentUser ? currentUser.id : undefined,
+          customerId: !showAllInCountry && role === 'customer' && currentUser ? currentUser.id : undefined,
+          workerId: !showAllInCountry && role === 'worker' && currentUser ? currentUser.id : undefined,
         };
         const jobList = await getServices().jobs.list(filter);
         setJobs(jobList);
@@ -40,18 +42,46 @@ export const JobsListPage: React.FC = () => {
       }
     };
     fetchJobs();
-  }, [countryCode, currentUser, role]);
+  }, [countryCode, currentUser, role, showAllInCountry]);
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto py-4 animate-fade-in">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
             {t('nav.myJobs')}
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Active and archived deals with escrow payment protection
+            {isUk
+              ? 'Активні та завершені замовлення із захистом оплати через банківський Ескроу'
+              : 'Active and archived deals with escrow payment protection'}
           </p>
+        </div>
+
+        {/* View mode toggle for testing */}
+        <div className="flex items-center gap-1.5 p-1 rounded-xl bg-muted/60 border border-border text-xs">
+          <button
+            type="button"
+            onClick={() => setShowAllInCountry(true)}
+            className={`px-3 py-1.5 rounded-lg font-medium transition-all ${
+              showAllInCountry
+                ? 'bg-primary text-primary-foreground font-bold shadow-xs'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {isUk ? 'Усі в країні' : 'All in Country'} ({jobs.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowAllInCountry(false)}
+            className={`px-3 py-1.5 rounded-lg font-medium transition-all ${
+              !showAllInCountry
+                ? 'bg-primary text-primary-foreground font-bold shadow-xs'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {isUk ? 'Мої замовлення' : 'My Persona Jobs'}
+          </button>
         </div>
       </div>
 
@@ -63,9 +93,13 @@ export const JobsListPage: React.FC = () => {
         </div>
       ) : jobs.length === 0 ? (
         <EmptyState
-          title="No jobs found"
-          description="You do not have any active jobs in this market yet."
-          actionLabel="Browse Available Tasks"
+          title={isUk ? 'Замовлень не знайдено' : 'No jobs found'}
+          description={
+            isUk
+              ? 'У цьому ринку ще немає замовлень для поточної ролі. Ви можете створити завдання або переглянути всі замовлення.'
+              : 'You do not have any active jobs in this market yet.'
+          }
+          actionLabel={isUk ? 'Знайти доступні завдання' : 'Browse Available Tasks'}
           onAction={() => (window.location.href = '/tasks')}
         />
       ) : (
@@ -89,30 +123,32 @@ export const JobsListPage: React.FC = () => {
                       </Badge>
                       {job.isFlagship && (
                         <Badge variant="verify" className="font-semibold">
-                          Flagship Demo
+                          {isUk ? 'Флагманське демо' : 'Flagship Demo'}
                         </Badge>
                       )}
                     </div>
 
                     <h3 className="font-bold text-base text-foreground group-hover:text-primary transition-colors">
-                      {task ? getLocalizedText(task.title, locale) : `Job #${job.id}`}
+                      {task ? getLocalizedText(task.title, locale) : `${isUk ? 'Замовлення' : 'Job'} #${job.id}`}
                     </h3>
 
                     <div className="flex items-center gap-4 text-xs text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <Lock className="w-3.5 h-3.5 text-primary" />
-                        <span>State: {job.paymentState}</span>
+                        <span>{isUk ? 'Ескроу:' : 'State:'} {job.paymentState}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <Clock className="w-3.5 h-3.5" />
-                        <span>Created {formatDate(job.createdAt, 'PP', locale)}</span>
+                        <span>{isUk ? 'Створено' : 'Created'} {formatDate(job.createdAt, 'PP', locale)}</span>
                       </div>
                     </div>
                   </div>
 
                   <div className="flex items-center justify-between sm:justify-end gap-4 border-t sm:border-t-0 pt-2 sm:pt-0 border-border">
                     <div className="text-right">
-                      <span className="text-[11px] text-muted-foreground block">Protected Value</span>
+                      <span className="text-[11px] text-muted-foreground block">
+                        {isUk ? 'Захищена сума' : 'Protected Value'}
+                      </span>
                       <span className="text-lg font-bold text-foreground">
                         {formatCurrency(job.amount, pack, locale)}
                       </span>

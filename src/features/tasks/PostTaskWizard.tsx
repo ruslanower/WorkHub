@@ -138,15 +138,15 @@ export const PostTaskWizard: React.FC = () => {
         customerId: currentUser.id,
         categoryId: selectedCatId,
         templateId: selectedTemplateId,
-        title: { en: title },
-        description: { en: description },
+        title: { en: title, uk: title },
+        description: { en: description, uk: description },
         cityId,
         district,
         budget,
         budgetType,
         milestonePlan: [
-          { title: { en: 'Phase 1: Mobilization & initial work' }, share: 0.4 },
-          { title: { en: 'Phase 2: Final delivery & inspection' }, share: 0.6 },
+          { title: { en: 'Phase 1: Mobilization & initial work', uk: 'Етап 1: Мобілізація та початкові роботи' }, share: 0.4 },
+          { title: { en: 'Phase 2: Final delivery & inspection', uk: 'Етап 2: Завершення робіт та фінальний огляд' }, share: 0.6 },
         ],
         date: new Date(date).toISOString(),
         durationHours,
@@ -463,27 +463,37 @@ export const PostTaskWizard: React.FC = () => {
 
           {/* Live Fee Breakdown */}
           <div className="p-4 rounded-2xl bg-card border border-border space-y-2 text-xs shadow-soft">
-            <h4 className="font-bold text-foreground text-sm mb-2">Live Fee Breakdown:</h4>
+            <h4 className="font-bold text-foreground text-sm mb-2">
+              {locale === 'uk' ? 'Розрахунок вартості та комісій:' : 'Live Fee Breakdown:'}
+            </h4>
             <div className="flex justify-between text-muted-foreground">
-              <span>Task Amount:</span>
+              <span>{locale === 'uk' ? 'Сума завдання:' : 'Task Amount:'}</span>
               <span className="font-semibold text-foreground">
                 {formatCurrency(feeQuote.amount, pack, locale)}
               </span>
             </div>
             <div className="flex justify-between text-muted-foreground">
-              <span>Customer Platform Service Fee ({pack.fees.customerPct * 100}%):</span>
+              <span>
+                {locale === 'uk'
+                  ? `Комісія платформи замовника (${pack.fees.customerPct * 100}%):`
+                  : `Customer Platform Service Fee (${pack.fees.customerPct * 100}%):`}
+              </span>
               <span className="font-semibold text-foreground">
                 +{formatCurrency(feeQuote.customerFee, pack, locale)}
               </span>
             </div>
             <div className="flex justify-between font-bold text-sm text-foreground pt-2 border-t border-border">
-              <span>Total you pay into Escrow:</span>
+              <span>{locale === 'uk' ? 'Разом до внесення в Ескроу:' : 'Total you pay into Escrow:'}</span>
               <span className="text-primary">
                 {formatCurrency(feeQuote.customerPays, pack, locale)}
               </span>
             </div>
             <div className="flex justify-between text-xs text-muted-foreground pt-1">
-              <span>Worker will receive (after {pack.fees.workerPct * 100}% deduction):</span>
+              <span>
+                {locale === 'uk'
+                  ? `Виконавець отримає (після комісії ${pack.fees.workerPct * 100}%):`
+                  : `Worker will receive (after ${pack.fees.workerPct * 100}% deduction):`}
+              </span>
               <span className="font-semibold text-emerald-600 dark:text-emerald-400">
                 {formatCurrency(feeQuote.workerReceives, pack, locale)}
               </span>
@@ -502,10 +512,16 @@ export const PostTaskWizard: React.FC = () => {
               <div>
                 <span className="text-xs font-bold text-foreground block flex items-center gap-1.5">
                   <HeartHandshake className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-                  <span>Support Ukrainian Veterans & IDPs Priority Matching</span>
+                  <span>
+                    {locale === 'uk'
+                      ? 'Пріоритетне розміщення для ветеранів та ВПО'
+                      : 'Support Ukrainian Veterans & IDPs Priority Matching'}
+                  </span>
                 </span>
                 <span className="text-xs text-muted-foreground leading-relaxed block mt-0.5">
-                  Applies a soft ranking boost (+14%) to verified Ukrainian military veterans and internally displaced persons (IDPs) without excluding other qualified contractors.
+                  {locale === 'uk'
+                    ? 'Надає м’який буст ранжування (+14%) верифікованим ветеранам та переселенцям без виключення інших кваліфікованих майстрів.'
+                    : 'Applies a soft ranking boost (+14%) to verified Ukrainian military veterans and internally displaced persons (IDPs) without excluding other qualified contractors.'}
                 </span>
               </div>
             </label>
@@ -518,7 +534,7 @@ export const PostTaskWizard: React.FC = () => {
         <div className="space-y-6">
           <div className="p-6 rounded-3xl border border-border bg-card space-y-4 shadow-soft">
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-base text-foreground">{title || 'Untitled task'}</h3>
+              <h3 className="font-bold text-base text-foreground">{title || (locale === 'uk' ? 'Завдання без назви' : 'Untitled task')}</h3>
               <Badge variant="verify">L{aiRecommendedLevel} Required</Badge>
             </div>
             <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-line">
@@ -529,7 +545,7 @@ export const PostTaskWizard: React.FC = () => {
             <div className="p-3 rounded-xl bg-muted/30 border border-border space-y-1.5">
               <span className="text-[11px] font-bold text-muted-foreground uppercase flex items-center gap-1">
                 <HardHat className="w-3.5 h-3.5 text-amber-500" />
-                <span>Safety Protocols (PPE):</span>
+                <span>{locale === 'uk' ? 'Протокол безпеки та ЗІЗ:' : 'Safety Protocols (PPE):'}</span>
               </span>
               <div className="flex flex-wrap gap-1">
                 {safetyChecklist
@@ -547,13 +563,13 @@ export const PostTaskWizard: React.FC = () => {
 
             <div className="grid grid-cols-2 gap-4 text-xs pt-3 border-t border-border">
               <div>
-                <span className="text-muted-foreground block">Location:</span>
+                <span className="text-muted-foreground block">{locale === 'uk' ? 'Локація:' : 'Location:'}</span>
                 <span className="font-semibold text-foreground">
                   {getLocalizedText(pack.cities.find((c) => c.id === cityId)?.name, locale)}, {district}
                 </span>
               </div>
               <div>
-                <span className="text-muted-foreground block">Protected Escrow Amount:</span>
+                <span className="text-muted-foreground block">{locale === 'uk' ? 'Сума в Ескроу:' : 'Protected Escrow Amount:'}</span>
                 <span className="font-bold text-primary text-sm">
                   {formatCurrency(feeQuote.customerPays, pack, locale)}
                 </span>
@@ -562,9 +578,13 @@ export const PostTaskWizard: React.FC = () => {
           </div>
 
           <div className="p-4 rounded-2xl bg-teal-50 dark:bg-teal-950/20 border border-teal-500/30 text-xs text-muted-foreground space-y-1">
-            <span className="font-bold text-foreground block">Google Protected Workflow:</span>
+            <span className="font-bold text-foreground block">
+              {locale === 'uk' ? 'Захищений робочий процес WorkHub:' : 'Google Protected Workflow:'}
+            </span>
             <p>
-              Publishing is free. Once verified contractors submit proposals, Vertex AI will rank them by distance (Google Maps Platform), Trust Score, and skills. All transactions are protected by Diia.ID e-signatures and escrow.
+              {locale === 'uk'
+                ? 'Публікація безкоштовна. Після надходження пропозицій AI ранжує їх за дистанцією, Trust Score та фахом. Оплата захищена безвідкличним банківським ескроу та договором з Дія.Підписом.'
+                : 'Publishing is free. Once verified contractors submit proposals, Vertex AI will rank them by distance (Google Maps Platform), Trust Score, and skills. All transactions are protected by Diia.ID e-signatures and escrow.'}
             </p>
           </div>
         </div>
@@ -575,7 +595,7 @@ export const PostTaskWizard: React.FC = () => {
         {step > 1 ? (
           <Button variant="outline" size="md" onClick={() => setStep((step - 1) as any)}>
             <ArrowLeft className="w-4 h-4 mr-1.5" />
-            Back
+            {locale === 'uk' ? 'Назад' : 'Back'}
           </Button>
         ) : (
           <div />
@@ -583,12 +603,12 @@ export const PostTaskWizard: React.FC = () => {
 
         {step < 4 ? (
           <Button variant="primary" size="md" onClick={() => setStep((step + 1) as any)}>
-            Continue
+            {locale === 'uk' ? 'Продовжити' : 'Continue'}
             <ArrowRight className="w-4 h-4 ml-1.5" />
           </Button>
         ) : (
           <Button variant="primary" size="lg" isLoading={submitting} onClick={handlePublish} className="font-bold">
-            Publish Task Now
+            {locale === 'uk' ? 'Опублікувати завдання' : 'Publish Task Now'}
           </Button>
         )}
       </div>

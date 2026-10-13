@@ -78,17 +78,21 @@ export const OfferCard: React.FC<OfferCardProps> = ({
       <div className="flex items-center justify-between gap-2 bg-muted/50 -mt-2 -mx-2 px-3 py-1.5 rounded-2xl border border-border/50 text-[11px]">
         <div className="flex items-center gap-1.5 font-bold text-teal-700 dark:text-teal-300">
           <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-          <span>{matchScore}% AI Match</span>
+          <span>{matchScore}% {locale === 'uk' ? 'AI Відповідність' : 'AI Match'}</span>
           {socialBoost > 0 && (
             <span className="text-[10px] text-teal-600 dark:text-teal-400 font-semibold">
-              (+8% Priority Boost)
+              {locale === 'uk' ? '(+8% Пріоритетний буст)' : '(+8% Priority Boost)'}
             </span>
           )}
         </div>
 
         <div className="flex items-center gap-1 text-muted-foreground font-medium">
           <MapPin className="w-3 h-3 text-primary" />
-          <span>{distanceKm} km • {driveMinutes}m drive (Google Maps)</span>
+          <span>
+            {locale === 'uk'
+              ? `${distanceKm} км • ~${driveMinutes} хв (Google Maps)`
+              : `${distanceKm} km • ~${driveMinutes}m (Google Maps)`}
+          </span>
         </div>
       </div>
 
@@ -102,12 +106,12 @@ export const OfferCard: React.FC<OfferCardProps> = ({
             <div>
               <div className="flex items-center gap-1.5 flex-wrap">
                 <h4 className="font-bold text-sm text-foreground">
-                  {worker ? getLocalizedText(worker.name, locale) : 'Verified Contractor'}
+                  {worker ? getLocalizedText(worker.name, locale) : (locale === 'uk' ? 'Перевірений майстер' : 'Verified Contractor')}
                 </h4>
                 {worker && <VerifiedBadge level={worker.verificationLevel} showLabel={false} />}
                 {aiRank === 1 && (
                   <Badge variant="default" className="text-[10px] bg-teal-600 text-white font-extrabold px-1.5 py-0.2">
-                    Top Match
+                    {locale === 'uk' ? 'Найкращий вибір' : 'Top Match'}
                   </Badge>
                 )}
               </div>
@@ -118,8 +122,8 @@ export const OfferCard: React.FC<OfferCardProps> = ({
                     {worker.rating}
                   </span>
                 )}
-                <span>• {worker?.completedJobs || 12} jobs done</span>
-                <span>• L{worker?.verificationLevel ?? 1} Diia.ID</span>
+                <span>• {worker?.completedJobs || 12} {locale === 'uk' ? 'робіт' : 'jobs'}</span>
+                <span>• L{worker?.verificationLevel ?? 1} {pack.identity.providerName}</span>
               </div>
             </div>
           </div>
@@ -133,13 +137,13 @@ export const OfferCard: React.FC<OfferCardProps> = ({
             {isVeteran && (
               <Badge variant="verify" className="flex items-center gap-1 text-[11px] font-semibold">
                 <HeartHandshake className="w-3 h-3 text-verify" />
-                <span>🇺🇦 Ukrainian Veteran (Diia.ID Verified)</span>
+                <span>{locale === 'uk' ? '🇺🇦 Ветеран (Дія.Підпис)' : '🇺🇦 Ukrainian Veteran (Verified)'}</span>
               </Badge>
             )}
             {isIdp && (
               <Badge variant="secondary" className="flex items-center gap-1 text-[11px] font-semibold text-blue-700 dark:text-blue-300 bg-blue-500/10 border border-blue-500/20">
                 <ShieldCheck className="w-3 h-3 text-blue-500" />
-                <span>🛡️ Internally Displaced (IDP / ВПО)</span>
+                <span>{locale === 'uk' ? '🛡️ ВПО (Внутрішньо переміщена особа)' : '🛡️ Internally Displaced (IDP)'}</span>
               </Badge>
             )}
           </div>
@@ -161,18 +165,22 @@ export const OfferCard: React.FC<OfferCardProps> = ({
           </div>
           <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
             <Clock className="w-3 h-3" />
-            <span>Estimated in {offer.etaDays} days</span>
+            <span>
+              {locale === 'uk'
+                ? `Виконання: ~${offer.etaDays} дн.`
+                : `Estimated in ${offer.etaDays} days`}
+            </span>
           </div>
         </div>
 
         {offer.status === 'accepted' ? (
           <Badge variant="success" className="px-3 py-1 text-xs font-bold">
             <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-            Hired
+            {locale === 'uk' ? 'Найнято' : 'Hired'}
           </Badge>
         ) : canHire && onHire ? (
           <Button size="sm" variant="primary" onClick={() => onHire(offer)} className="font-bold">
-            Hire Contractor
+            {locale === 'uk' ? 'Найняти майстра' : 'Hire Contractor'}
           </Button>
         ) : null}
       </div>

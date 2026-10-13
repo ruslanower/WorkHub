@@ -10,7 +10,7 @@ export const KE: CountryPack = {
   code: 'KE',
   name: { en: 'Kenya', sw: 'Kenya' },
   defaultLocale: 'en',
-  locales: ['en', 'sw'],
+  locales: ['en', 'uk', 'sw'],
   intlRegion: 'KE',
   currency: { code: 'KES', symbol: 'KSh', decimals: 0 },
   fees: { customerPct: 0.05, workerPct: 0.06, minFee: 50, payoutFee: 30 },

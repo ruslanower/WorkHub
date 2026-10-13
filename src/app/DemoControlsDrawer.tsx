@@ -41,6 +41,7 @@ export const DemoControlsDrawer: React.FC = () => {
 
   const { t } = useTranslation();
   const [notification, setNotification] = React.useState<string | null>(null);
+  const isUk = locale === 'uk';
 
   const showNotification = (msg: string) => {
     setNotification(msg);
@@ -59,14 +60,18 @@ export const DemoControlsDrawer: React.FC = () => {
       }
     });
     await refreshCurrentUser();
-    showNotification(`Verification level updated to L${level} for ${currentUser.name.en}`);
+    showNotification(
+      isUk
+        ? `Рівень верифікації змінено на L${level} для ${currentUser.name.uk || currentUser.name.en}`
+        : `Verification level updated to L${level} for ${currentUser.name.en}`,
+    );
   };
 
   // Handler to advance flagship job or first available job
   const handleAdvanceJobState = async (targetStatus?: JobStatus) => {
     const jobs = await getServices().jobs.list({ countryCode });
     if (jobs.length === 0) {
-      showNotification('No active jobs found in this country');
+      showNotification(isUk ? 'У цій країні немає активних замовлень' : 'No active jobs found in this country');
       return;
     }
     const job = jobs[0]; // flagship or primary job
@@ -94,7 +99,11 @@ export const DemoControlsDrawer: React.FC = () => {
         }
       }
     });
-    showNotification(`Job #${job.id} advanced to status: "${nextStatus}"`);
+    showNotification(
+      isUk
+        ? `Замовлення #${job.id} переведено у статус: "${nextStatus}"`
+        : `Job #${job.id} advanced to status: "${nextStatus}"`,
+    );
   };
 
   // Handler to trigger simulated dispute
@@ -116,7 +125,9 @@ export const DemoControlsDrawer: React.FC = () => {
         countryCode,
         openedBy: job.customerId,
         reason: 'quality',
-        description: 'Work incomplete according to agreed technical specification.',
+        description: isUk
+          ? 'Невідповідність якості виконаних робіт технічному завданню та договору.'
+          : 'Work incomplete according to agreed technical specification.',
         desiredOutcome: 'partial_refund',
         evidence: [],
         notes: [],
@@ -125,14 +136,27 @@ export const DemoControlsDrawer: React.FC = () => {
         createdAt: new Date().toISOString(),
       });
     });
-    showNotification(`Simulated dispute opened on Job #${job.id}`);
+    showNotification(
+      isUk ? `Змодельовано спір по замовленню #${job.id}` : `Simulated dispute opened on Job #${job.id}`,
+    );
   };
 
   // Reset entire mock dataset
   const handleResetData = async () => {
     mockStore.reset();
     await refreshCurrentUser();
-    showNotification('Demo database reset to clean seed data');
+    showNotification(
+      isUk ? 'Базу даних демо скинуто до початкових значень' : 'Demo database reset to clean seed data',
+    );
+  };
+
+  const roleLabels: Record<Role, { uk: string; en: string }> = {
+    customer: { uk: 'Замовник', en: 'Customer' },
+    worker: { uk: 'Виконавець', en: 'Contractor' },
+    company: { uk: 'Компанія', en: 'Company' },
+    admin: { uk: 'Адмін', en: 'Admin' },
+    partner: { uk: 'Партнер', en: 'Partner' },
+    investor: { uk: 'Інвестор', en: 'Investor' },
   };
 
   return (
@@ -147,7 +171,9 @@ export const DemoControlsDrawer: React.FC = () => {
           <div className="flex items-center gap-2">
             <SlidersHorizontal className="w-5 h-5 text-teal-600 dark:text-teal-400" />
             <div>
-              <h3 className="font-bold text-base leading-tight">Demo Simulator & Controls</h3>
+              <h3 className="font-bold text-base leading-tight">
+                {isUk ? 'Керування демо та симуляції' : 'Demo Simulator & Controls'}
+              </h3>
               <p className="text-[11px] text-muted-foreground font-mono">
                 {t('common.brandWorkingTitle')} (illustrative)
               </p>
@@ -176,7 +202,7 @@ export const DemoControlsDrawer: React.FC = () => {
           <div className="space-y-2.5">
             <div className="flex items-center gap-1.5 font-semibold text-foreground uppercase tracking-wider text-[11px]">
               <Globe className="w-3.5 h-3.5 text-primary" />
-              <span>Country Pack Switcher</span>
+              <span>{isUk ? 'Перемикач Country Pack' : 'Country Pack Switcher'}</span>
             </div>
             <div className="grid grid-cols-3 gap-2">
               {Object.keys(COUNTRY_PACKS).map((cc) => {
@@ -199,7 +225,9 @@ export const DemoControlsDrawer: React.FC = () => {
               })}
             </div>
             <p className="text-[11px] text-muted-foreground">
-              Switches currency, identity provider ({pack.identity.providerName}), tax laws, and fees instantly with zero reload.
+              {isUk
+                ? `Миттєво перемикає валюту, національний ID (${pack.identity.providerName}), податки та комісії без перезавантаження сторінки.`
+                : `Switches currency, identity provider (${pack.identity.providerName}), tax laws, and fees instantly with zero reload.`}
             </p>
           </div>
 
@@ -207,7 +235,7 @@ export const DemoControlsDrawer: React.FC = () => {
           <div className="space-y-2.5">
             <div className="flex items-center gap-1.5 font-semibold text-foreground uppercase tracking-wider text-[11px]">
               <Users className="w-3.5 h-3.5 text-primary" />
-              <span>Persona / Role</span>
+              <span>{isUk ? 'Роль / Персона користувача' : 'Persona / Role'}</span>
             </div>
             <div className="grid grid-cols-3 gap-1.5">
               {(['customer', 'worker', 'company', 'admin', 'partner', 'investor'] as Role[]).map((r) => (
@@ -221,7 +249,7 @@ export const DemoControlsDrawer: React.FC = () => {
                       : 'border-border bg-card hover:bg-muted text-muted-foreground'
                   }`}
                 >
-                  {r}
+                  {isUk ? roleLabels[r].uk : roleLabels[r].en}
                 </button>
               ))}
             </div>
@@ -232,12 +260,14 @@ export const DemoControlsDrawer: React.FC = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5 font-semibold text-foreground text-xs">
                 <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                <span>Simulate Identity Level</span>
+                <span>{isUk ? 'Симуляція рівня верифікації' : 'Simulate Identity Level'}</span>
               </div>
               <Badge variant="verify">L{currentUser?.verificationLevel ?? 0}</Badge>
             </div>
             <p className="text-[11px] text-muted-foreground">
-              Fast-forward current account ({currentUser?.name.en || 'Guest'}) through government identity verification tiers:
+              {isUk
+                ? `Зміна рівня довіри для поточного акаунту (${currentUser?.name.uk || currentUser?.name.en || 'Гість'}):`
+                : `Fast-forward current account (${currentUser?.name.en || 'Guest'}) through government identity verification tiers:`}
             </p>
             <div className="grid grid-cols-4 gap-1.5">
               {[0, 1, 2, 3].map((lvl) => (
@@ -262,12 +292,14 @@ export const DemoControlsDrawer: React.FC = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5 font-semibold text-foreground text-xs">
                 <Briefcase className="w-4 h-4 text-teal-600" />
-                <span>Job Lifecycle Advancer</span>
+                <span>{isUk ? 'Керування життєвим циклом угоди' : 'Job Lifecycle Advancer'}</span>
               </div>
-              <Badge variant="outline">Flagship Job</Badge>
+              <Badge variant="outline">{isUk ? 'Флагманська угода' : 'Flagship Job'}</Badge>
             </div>
             <p className="text-[11px] text-muted-foreground">
-              Step through the protected payment milestones or trigger dispute resolution without creating manual tasks:
+              {isUk
+                ? 'Миттєвий перехід між етапами захищеної оплати без необхідності створювати тестові завдання вручну:'
+                : 'Step through the protected payment milestones or trigger dispute resolution without creating manual tasks:'}
             </p>
             <div className="grid grid-cols-2 gap-2">
               <Button
@@ -276,7 +308,7 @@ export const DemoControlsDrawer: React.FC = () => {
                 onClick={() => handleAdvanceJobState('funded')}
                 className="text-xs justify-start"
               >
-                <Play className="w-3.5 h-3.5 mr-1 text-teal-600" /> 1. Escrow Funded
+                <Play className="w-3.5 h-3.5 mr-1 text-teal-600" /> {isUk ? '1. Ескроу внесено' : '1. Escrow Funded'}
               </Button>
               <Button
                 variant="outline"
@@ -284,7 +316,7 @@ export const DemoControlsDrawer: React.FC = () => {
                 onClick={() => handleAdvanceJobState('in_progress')}
                 className="text-xs justify-start"
               >
-                <Play className="w-3.5 h-3.5 mr-1 text-teal-600" /> 2. In Progress
+                <Play className="w-3.5 h-3.5 mr-1 text-teal-600" /> {isUk ? '2. У роботі' : '2. In Progress'}
               </Button>
               <Button
                 variant="outline"
@@ -292,7 +324,7 @@ export const DemoControlsDrawer: React.FC = () => {
                 onClick={() => handleAdvanceJobState('approved')}
                 className="text-xs justify-start"
               >
-                <CheckCircle className="w-3.5 h-3.5 mr-1 text-emerald-600" /> 3. Approved & Paid
+                <CheckCircle className="w-3.5 h-3.5 mr-1 text-emerald-600" /> {isUk ? '3. Прийнято й виплачено' : '3. Approved & Paid'}
               </Button>
               <Button
                 variant="outline"
@@ -300,7 +332,7 @@ export const DemoControlsDrawer: React.FC = () => {
                 onClick={handleTriggerDispute}
                 className="text-xs justify-start text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-800"
               >
-                <AlertTriangle className="w-3.5 h-3.5 mr-1 text-amber-600" /> Trigger Dispute
+                <AlertTriangle className="w-3.5 h-3.5 mr-1 text-amber-600" /> {isUk ? 'Відкрити спір' : 'Trigger Dispute'}
               </Button>
             </div>
           </div>
@@ -310,37 +342,39 @@ export const DemoControlsDrawer: React.FC = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5 font-semibold text-foreground text-xs">
                 <Percent className="w-4 h-4 text-indigo-600" />
-                <span>Real-time Platform Take-rate</span>
+                <span>{isUk ? 'Налаштування комісії платформи' : 'Real-time Platform Take-rate'}</span>
               </div>
               <Badge variant="secondary">
                 {Math.round((pack.fees.customerPct + pack.fees.workerPct) * 100)}% blended
               </Badge>
             </div>
             <p className="text-[11px] text-muted-foreground">
-              Test how altering take-rates in the pack dynamically recalculates all checkout totals across the app:
+              {isUk
+                ? 'Зміна структури комісій динамічно перераховує всі розрахунки в чеках та калькуляторах:'
+                : 'Test how altering take-rates in the pack dynamically recalculates all checkout totals across the app:'}
             </p>
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => {
                   updatePackFees({ customerPct: 0.01, workerPct: 0.0 });
-                  showNotification('Applied 1% Fee Model (Unsustainable baseline)');
+                  showNotification(isUk ? 'Застосовано 1% модель (збиткова база)' : 'Applied 1% Fee Model (Unsustainable baseline)');
                 }}
                 className="p-2 rounded-lg border border-red-300 dark:border-red-900 bg-red-50 dark:bg-red-950/40 text-red-700 dark:text-red-300 font-semibold text-left"
               >
-                <div className="text-[11px]">1% Naive Model</div>
-                <div className="text-[10px] font-normal text-muted-foreground">Sub-cost, loss-making</div>
+                <div className="text-[11px]">{isUk ? '1% Наївна модель' : '1% Naive Model'}</div>
+                <div className="text-[10px] font-normal text-muted-foreground">{isUk ? 'Нижче собівартості' : 'Sub-cost, loss-making'}</div>
               </button>
               <button
                 type="button"
                 onClick={() => {
                   updatePackFees({ customerPct: 0.05, workerPct: 0.07 });
-                  showNotification('Applied 12% Sustainable Model');
+                  showNotification(isUk ? 'Застосовано 12% стійку модель' : 'Applied 12% Sustainable Model');
                 }}
                 className="p-2 rounded-lg border border-teal-300 dark:border-teal-900 bg-teal-50 dark:bg-teal-950/40 text-teal-800 dark:text-teal-300 font-semibold text-left"
               >
-                <div className="text-[11px]">12% Target Model</div>
-                <div className="text-[10px] font-normal text-muted-foreground">Covers escrow & KYC</div>
+                <div className="text-[11px]">{isUk ? '12% Цільова модель' : '12% Target Model'}</div>
+                <div className="text-[10px] font-normal text-muted-foreground">{isUk ? 'Покриває ескроу та KYC' : 'Covers escrow & KYC'}</div>
               </button>
             </div>
           </div>
@@ -354,17 +388,21 @@ export const DemoControlsDrawer: React.FC = () => {
               className="w-full text-xs text-red-600 dark:text-red-400 border-red-300 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-950/50"
             >
               <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
-              Reset All Demo State to Seed
+              {isUk ? 'Скинути всі дані демо до початкових' : 'Reset All Demo State to Seed'}
             </Button>
             <p className="text-[10px] text-muted-foreground text-center mt-1.5">
-              Clears in-memory mutations and restores 24 tasks, 8 jobs, 12 workers, and 3 disputes.
+              {isUk
+                ? 'Очищає зміни в оперативній пам’яті та відновлює 24 завдання, 8 угод, 12 майстрів та 3 спори.'
+                : 'Clears in-memory mutations and restores 24 tasks, 8 jobs, 12 workers, and 3 disputes.'}
             </p>
           </div>
         </div>
 
         {/* Footer */}
         <div className="p-3 bg-muted/60 border-t border-border text-center text-[10px] text-muted-foreground">
-          Investor Demo Suite • All transactions illustrative
+          {isUk
+            ? 'Інвесторський демо-комплекс • Усі транзакції модельовані'
+            : 'Investor Demo Suite • All transactions illustrative'}
         </div>
       </div>
     </div>

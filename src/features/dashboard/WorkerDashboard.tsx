@@ -31,6 +31,7 @@ import { Link } from 'react-router-dom';
 export const WorkerDashboard: React.FC = () => {
   const { pack, locale, currentUser, refreshCurrentUser } = useAppStore();
   const { t } = useTranslation();
+  const isUk = locale === 'uk';
 
   const [earningsSeries, setEarningsSeries] = React.useState<SeriesPoint[]>([]);
   const [nearbyTasks, setNearbyTasks] = React.useState<TaskWithMeta[]>([]);
@@ -69,7 +70,7 @@ export const WorkerDashboard: React.FC = () => {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-bold text-foreground">
-                {currentUser?.name.en || 'Contractor Dashboard'}
+                {isUk && currentUser?.name.uk ? currentUser.name.uk : currentUser?.name.en || (isUk ? 'Кабінет виконавця' : 'Contractor Dashboard')}
               </h1>
               {currentUser?.pro && (
                 <Badge variant="default" className="bg-amber-500 text-white font-bold">
@@ -78,7 +79,9 @@ export const WorkerDashboard: React.FC = () => {
               )}
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Verified contractor profile in {pack.name.en} • Level {currentUser?.verificationLevel || 2}
+              {isUk
+                ? `Верифікований профіль майстра в ${getLocalizedText(pack.name, locale)} • Рівень L${currentUser?.verificationLevel || 2}`
+                : `Verified contractor profile in ${pack.name.en} • Level ${currentUser?.verificationLevel || 2}`}
             </p>
           </div>
         </div>
@@ -91,32 +94,32 @@ export const WorkerDashboard: React.FC = () => {
       {/* 2. Key Metrics Strip */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <KpiTile
-          title="Monthly Income"
+          title={isUk ? 'Місячний дохід' : 'Monthly Income'}
           value={formatCurrency(pack.currency.code === 'KE' ? 42000 : pack.currency.code === 'PL' ? 3800 : 26000, pack, locale)}
           change="+18%"
           changePositive={true}
-          subtext="vs last month"
+          subtext={isUk ? 'проти мин. місяця' : 'vs last month'}
           icon={<DollarSign className="w-4 h-4 text-emerald-600" />}
         />
 
         <KpiTile
-          title="Active Jobs"
+          title={isUk ? 'Активні замовлення' : 'Active Jobs'}
           value={activeJobs.length}
-          subtext="Payment protected"
+          subtext={isUk ? 'Оплата захищена' : 'Payment protected'}
           icon={<Briefcase className="w-4 h-4 text-primary" />}
         />
 
         <KpiTile
-          title="Completed Jobs"
+          title={isUk ? 'Виконаних замовлень' : 'Completed Jobs'}
           value={currentUser?.completedJobs || 18}
-          subtext="100% completion rate"
+          subtext={isUk ? '100% успішність' : '100% completion rate'}
           icon={<Award className="w-4 h-4 text-amber-600" />}
         />
 
         <KpiTile
-          title="Avg Response Time"
-          value={`${currentUser?.responseMinutes || 12} min`}
-          subtext="Top 10% in city"
+          title={isUk ? 'Час відповіді' : 'Avg Response Time'}
+          value={`${currentUser?.responseMinutes || 12} ${isUk ? 'хв' : 'min'}`}
+          subtext={isUk ? 'Топ-10% у місті' : 'Top 10% in city'}
           icon={<Clock className="w-4 h-4 text-blue-600" />}
         />
       </div>
@@ -126,7 +129,7 @@ export const WorkerDashboard: React.FC = () => {
         <div className="lg:col-span-2 p-6 rounded-3xl border border-border bg-card shadow-soft space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="font-bold text-base text-foreground">
-              Earnings Performance
+              {isUk ? 'Динаміка заробітку' : 'Earnings Performance'}
             </h3>
             <div className="flex items-center gap-1 p-1 rounded-xl bg-muted text-xs">
               <button
@@ -136,7 +139,7 @@ export const WorkerDashboard: React.FC = () => {
                   chartPeriod === 'week' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
                 }`}
               >
-                Week
+                {isUk ? 'Тиждень' : 'Week'}
               </button>
               <button
                 type="button"
@@ -145,7 +148,7 @@ export const WorkerDashboard: React.FC = () => {
                   chartPeriod === 'month' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
                 }`}
               >
-                Month
+                {isUk ? 'Місяць' : 'Month'}
               </button>
             </div>
           </div>
@@ -185,12 +188,14 @@ export const WorkerDashboard: React.FC = () => {
               WorkHub Pro Plan
             </h3>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Get 3x bid visibility, access to commercial B2B recurring jobs, and priority dispute protection.
+              {isUk
+                ? 'Отримайте втричі вищу видимість пропозицій, доступ до регулярних B2B замовлень компаній та пріоритетний захист арбітражу.'
+                : 'Get 3x bid visibility, access to commercial B2B recurring jobs, and priority dispute protection.'}
             </p>
             <ul className="text-xs text-muted-foreground space-y-2 pt-2">
-              <li className="flex items-center gap-2">✓ Priority proposal placement</li>
-              <li className="flex items-center gap-2">✓ Free monthly CSV tax export</li>
-              <li className="flex items-center gap-2">✓ Commercial insurance discount</li>
+              <li className="flex items-center gap-2">✓ {isUk ? 'Пріоритетне розміщення пропозицій' : 'Priority proposal placement'}</li>
+              <li className="flex items-center gap-2">✓ {isUk ? 'Безкоштовний експорт виписок CSV' : 'Free monthly CSV tax export'}</li>
+              <li className="flex items-center gap-2">✓ {isUk ? 'Знижка на комерційне страхування' : 'Commercial insurance discount'}</li>
             </ul>
           </div>
 
@@ -199,7 +204,9 @@ export const WorkerDashboard: React.FC = () => {
             className="w-full"
             onClick={handleTogglePro}
           >
-            {currentUser?.pro ? 'Manage Pro Subscription' : 'Activate Pro (30 Days Free)'}
+            {currentUser?.pro
+              ? (isUk ? 'Керувати підпискою Pro' : 'Manage Pro Subscription')
+              : (isUk ? 'Активувати Pro (30 днів тест)' : 'Activate Pro (30 Days Free)')}
           </Button>
         </div>
       </div>
@@ -208,10 +215,10 @@ export const WorkerDashboard: React.FC = () => {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="font-bold text-base text-foreground">
-            Recommended Jobs in Your City
+            {isUk ? 'Рекомендовані завдання у вашому місті' : 'Recommended Jobs in Your City'}
           </h3>
           <Link to="/tasks" className="text-xs font-semibold text-primary hover:underline">
-            View all →
+            {isUk ? 'Дивитися всі →' : 'View all →'}
           </Link>
         </div>
 

@@ -71,7 +71,11 @@ export const MilestoneList: React.FC<MilestoneListProps> = ({
                   <Badge
                     variant={isReleased ? 'success' : isDelivered ? 'warning' : 'secondary'}
                   >
-                    {isReleased ? 'Released' : isDelivered ? 'Delivered' : 'Pending'}
+                    {isReleased
+                      ? t('common.status.released')
+                      : isDelivered
+                      ? t('common.status.delivered')
+                      : t('common.status.unfunded')}
                   </Badge>
                 </div>
               </div>

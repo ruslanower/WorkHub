@@ -94,7 +94,9 @@ export const WalletPage: React.FC = () => {
             {t('wallet.title')}
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Institutional payments via licensed partner: {pack.payments.partnerName}
+            {locale === 'uk'
+              ? `Офіційні платежі через ліцензованого партнера: ${pack.payments.partnerName}`
+              : `Institutional payments via licensed partner: ${pack.payments.partnerName}`}
           </p>
         </div>
 
@@ -135,7 +137,7 @@ export const WalletPage: React.FC = () => {
               {formatCurrency(summary.available, pack, locale)}
             </div>
             <span className="text-[11px] text-muted-foreground block">
-              Instant payout ready
+              {locale === 'uk' ? 'Доступно до миттєвої виплати' : 'Instant payout ready'}
             </span>
           </div>
 
@@ -149,7 +151,7 @@ export const WalletPage: React.FC = () => {
               {formatCurrency(summary.held, pack, locale)}
             </div>
             <span className="text-[11px] text-muted-foreground block">
-              Auto-releases after acceptance
+              {locale === 'uk' ? 'Виплачується після підписання акту' : 'Auto-releases after acceptance'}
             </span>
           </div>
 
@@ -163,7 +165,7 @@ export const WalletPage: React.FC = () => {
               {formatCurrency(summary.pendingPayouts, pack, locale)}
             </div>
             <span className="text-[11px] text-muted-foreground block">
-              Settling through local rails
+              {locale === 'uk' ? 'Обробка через локальний банк' : 'Settling through local rails'}
             </span>
           </div>
         </div>
@@ -303,7 +305,9 @@ export const WalletPage: React.FC = () => {
           </div>
 
           <div className="p-3 rounded-xl bg-muted/40 border border-border text-xs flex justify-between">
-            <span className="text-muted-foreground">Payout processing fee:</span>
+            <span className="text-muted-foreground">
+              {locale === 'uk' ? 'Комісія платіжного шлюзу:' : 'Payout processing fee:'}
+            </span>
             <span className="font-semibold text-foreground">
               {formatCurrency(currentPayoutFee, pack, locale)}
             </span>
@@ -323,7 +327,9 @@ export const WalletPage: React.FC = () => {
             isLoading={submittingWithdrawal}
             onClick={handleWithdraw}
           >
-            Confirm Withdrawal ({pack.payments.partnerName})
+            {locale === 'uk'
+              ? `Підтвердити виведення коштів (${pack.payments.partnerName})`
+              : `Confirm Withdrawal (${pack.payments.partnerName})`}
           </Button>
         </div>
       </Modal>

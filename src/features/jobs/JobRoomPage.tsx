@@ -26,11 +26,16 @@ import {
   DollarSign,
   History,
   Lock,
+  Star,
+  UserCheck,
+  Scale,
+  CreditCard,
+  User,
 } from 'lucide-react';
 
 export const JobRoomPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { pack, locale, role, currentUser } = useAppStore();
+  const { pack, locale, role, setRole, currentUser } = useAppStore();
   const { t } = useTranslation();
 
   const [room, setRoom] = React.useState<JobRoom | null>(null);
@@ -58,6 +63,12 @@ export const JobRoomPage: React.FC = () => {
   // Document preview modal
   const [previewDoc, setPreviewDoc] = React.useState<RenderedDocument | null>(null);
   const [docLoading, setDocLoading] = React.useState(false);
+
+  // Review & Rating State
+  const [ratingScore, setRatingScore] = React.useState(5);
+  const [reviewComment, setReviewComment] = React.useState('');
+  const [submittingReview, setSubmittingReview] = React.useState(false);
+  const [reviewSubmitted, setReviewSubmitted] = React.useState(false);
 
   const loadRoom = React.useCallback(async () => {
     if (!id) return;
@@ -88,6 +99,7 @@ export const JobRoomPage: React.FC = () => {
 
   const { job, task, customer, worker, messages, evidence, documents, audit, dispute } = room;
   const isJobFunded = ['funded', 'in_progress', 'delivered', 'approved', 'paid_out'].includes(job.status);
+  const isUk = locale === 'uk';
 
   // Actions
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -129,6 +141,17 @@ export const JobRoomPage: React.FC = () => {
     await loadRoom();
   };
 
+  const handleFundEscrow = async () => {
+    if (!currentUser) return;
+    try {
+      await getServices().jobs.signAgreement(job.id, currentUser.id);
+    } catch {
+      // might already be signed
+    }
+    await getServices().payments.fund(job.id, currentUser.id);
+    await loadRoom();
+  };
+
   const handleApproveWork = async () => {
     if (!currentUser) return;
     await getServices().jobs.approve(job.id, currentUser.id);
@@ -150,10 +173,44 @@ export const JobRoomPage: React.FC = () => {
       reason: disputeReason,
       description: disputeDesc,
       desiredOutcome: disputeOutcome,
-      evidenceLabels: ['Visual proof attached'],
+      evidenceLabels: [isUk ? 'Фотофіксація недоліків' : 'Visual proof attached'],
     });
     setDisputeModalOpen(false);
     await loadRoom();
+  };
+
+  const handleResolveDispute = async (outcome: 'full_release' | 'refund' | 'partial_release') => {
+    if (!currentUser || !dispute) return;
+    const share = outcome === 'partial_release' ? 0.5 : outcome === 'full_release' ? 1.0 : 0.0;
+    const note = isUk
+      ? `Рішення арбітражу WorkHub: ${outcome === 'full_release' ? '100% виплата виконавцю' : outcome === 'refund' ? '100% повернення замовнику' : '50/50 розділено між сторонами'}.`
+      : `WorkHub Arbitration Ruling: ${outcome === 'full_release' ? 'Full payout to contractor' : outcome === 'refund' ? 'Full refund to customer' : '50/50 split between parties'}.`;
+
+    await getServices().disputes.decide(dispute.id, currentUser.id, outcome, share, note);
+    await loadRoom();
+  };
+
+  const handleSubmitReview = async () => {
+    if (!currentUser) return;
+    setSubmittingReview(true);
+    try {
+      await getServices().reviews.create({
+        jobId: job.id,
+        fromId: currentUser.id,
+        criteria: {
+          quality: ratingScore,
+          communication: ratingScore,
+          punctuality: ratingScore,
+        },
+        text: reviewComment.trim() || (isUk ? 'Чудова співпраця, робота виконана вчасно та за договором.' : 'Excellent collaboration, work completed on schedule and under contract.'),
+      });
+      setReviewSubmitted(true);
+      await loadRoom();
+    } catch {
+      //
+    } finally {
+      setSubmittingReview(false);
+    }
   };
 
   const handlePreviewDocument = async (kind: DocumentKind) => {
@@ -170,15 +227,67 @@ export const JobRoomPage: React.FC = () => {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 animate-fade-in py-2">
+      {/* 0. Quick Role Switcher for Test Experience */}
+      <div className="flex flex-wrap items-center justify-between gap-3 p-3 px-4 rounded-2xl bg-muted/40 border border-border text-xs">
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <UserCheck className="w-4 h-4 text-primary" />
+          <span>{isUk ? 'Тестування від імені ролі:' : 'Testing persona role:'}</span>
+          <Badge variant="secondary" className="font-bold text-foreground capitalize">
+            {role}
+          </Badge>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => setRole('customer')}
+            className={`px-3 py-1.5 rounded-lg font-medium transition-all ${
+              role === 'customer'
+                ? 'bg-primary text-primary-foreground font-bold shadow-xs'
+                : 'hover:bg-muted text-muted-foreground'
+            }`}
+          >
+            {isUk ? 'Замовник' : 'Customer'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setRole('worker')}
+            className={`px-3 py-1.5 rounded-lg font-medium transition-all ${
+              role === 'worker'
+                ? 'bg-primary text-primary-foreground font-bold shadow-xs'
+                : 'hover:bg-muted text-muted-foreground'
+            }`}
+          >
+            {isUk ? 'Виконавець' : 'Contractor'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setRole('admin')}
+            className={`px-3 py-1.5 rounded-lg font-medium transition-all ${
+              role === 'admin'
+                ? 'bg-primary text-primary-foreground font-bold shadow-xs'
+                : 'hover:bg-muted text-muted-foreground'
+            }`}
+          >
+            {isUk ? 'Арбітр / Адмін' : 'Mediator / Admin'}
+          </button>
+        </div>
+      </div>
+
       {/* 1. Stepper & Header */}
       <div className="p-4 sm:p-6 rounded-3xl border border-border bg-card shadow-soft space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border pb-3">
           <div>
             <div className="flex items-center gap-2">
               <span className="text-xs font-semibold text-muted-foreground">
-                Job #{job.id}
+                {isUk ? 'Замовлення' : 'Job'} #{job.id}
               </span>
               <Badge variant="default">{job.status.replace('_', ' ')}</Badge>
+              {job.isFlagship && (
+                <Badge variant="verify" className="font-semibold">
+                  {isUk ? 'Флагманське демо' : 'Flagship Demo'}
+                </Badge>
+              )}
             </div>
             <h1 className="text-xl font-bold text-foreground mt-1">
               {getLocalizedText(task.title, locale)}
@@ -186,7 +295,9 @@ export const JobRoomPage: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">Contract Value:</span>
+            <span className="text-xs text-muted-foreground">
+              {isUk ? 'Сума контракту:' : 'Contract Value:'}
+            </span>
             <span className="text-lg font-bold text-foreground">
               {formatCurrency(job.amount, pack, locale)}
             </span>
@@ -207,10 +318,12 @@ export const JobRoomPage: React.FC = () => {
         <div className="p-4 rounded-2xl border border-border bg-card flex flex-col justify-between text-xs space-y-2">
           <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-semibold">
             <PhoneCall className="w-4 h-4" />
-            <span>Emergency Services</span>
+            <span>{isUk ? 'Екстрені служби' : 'Emergency Services'}</span>
           </div>
           <p className="text-muted-foreground text-[11px] leading-relaxed">
-            In case of danger or accident on site, call the local emergency number immediately:
+            {isUk
+              ? 'У разі небезпеки або нещасного випадку на об’єкті негайно телефонуйте за місцевим номером екстрених служб:'
+              : 'In case of danger or accident on site, call the local emergency number immediately:'}
           </p>
           <div className="text-lg font-bold text-foreground font-mono">
             {pack.emergencyNumber}
@@ -218,19 +331,61 @@ export const JobRoomPage: React.FC = () => {
         </div>
       </div>
 
+      {/* 2.5 Dispute Resolution Panel (Active when Disputed) */}
+      {job.paymentState === 'disputed' && (
+        <div className="p-5 rounded-2xl border-2 border-amber-500/40 bg-amber-500/10 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300 font-bold text-sm">
+              <Scale className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+              <span>{isUk ? 'Арбітраж платформи: Спір на розгляді' : 'Platform Arbitration: Dispute Active'}</span>
+            </div>
+            <Badge variant="outline" className="border-amber-500 text-amber-700 dark:text-amber-300">
+              {dispute?.stage ? t(`disputes.stages.${dispute.stage}`) : 'In Review'}
+            </Badge>
+          </div>
+
+          <p className="text-xs text-amber-900/80 dark:text-amber-200/80 leading-relaxed">
+            {dispute?.description || (isUk ? 'Зафіксовано претензію щодо якості або строків робіт. Кошти заблоковано на ескроу-рахунку.' : 'A dispute regarding deliverables or deadlines has been initiated. Escrow funds are secured.')}
+          </p>
+
+          <div className="pt-2 border-t border-amber-500/20 flex flex-wrap items-center gap-2">
+            <span className="text-xs font-semibold text-foreground mr-1">
+              {isUk ? 'Дія арбітра (тест):' : 'Mediator action (test):'}
+            </span>
+            <Button size="sm" variant="primary" onClick={() => handleResolveDispute('full_release')}>
+              {isUk ? '100% виплата майстру' : '100% Release to Worker'}
+            </Button>
+            <Button size="sm" variant="danger" onClick={() => handleResolveDispute('refund')}>
+              {isUk ? '100% повернення замовнику' : '100% Refund to Customer'}
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => handleResolveDispute('partial_release')}>
+              {isUk ? 'Розділити 50% / 50%' : 'Split 50% / 50%'}
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* 3. Core Action Bar */}
       <div className="p-4 rounded-2xl border border-border bg-card shadow-soft flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2">
+          {/* Customer: Fund Escrow if job is accepted */}
+          {job.status === 'offer_accepted' && (
+            <Button size="sm" variant="primary" onClick={handleFundEscrow}>
+              <CreditCard className="w-4 h-4 mr-1.5" />
+              {isUk ? 'Зарезервувати кошти в Ескроу' : 'Fund Escrow Now'}
+            </Button>
+          )}
+
           {/* Worker Actions */}
           {role === 'worker' && job.status === 'funded' && (
             <Button size="sm" variant="primary" onClick={() => getServices().jobs.start(job.id, worker.id).then(loadRoom)}>
-              Begin On-Site Work
+              {isUk ? 'Розпочати роботу на об’єкті' : 'Begin On-Site Work'}
             </Button>
           )}
 
           {role === 'worker' && job.status === 'in_progress' && (
             <Button size="sm" variant="primary" onClick={handleDeliverWork}>
-              Submit Complete Work for Approval
+              {isUk ? 'Здати виконану роботу на перевірку' : 'Submit Complete Work for Approval'}
             </Button>
           )}
 
@@ -238,7 +393,7 @@ export const JobRoomPage: React.FC = () => {
           {role === 'customer' && job.status === 'delivered' && (
             <Button size="sm" variant="primary" onClick={handleApproveWork}>
               <CheckCircle2 className="w-4 h-4 mr-1.5" />
-              Approve Work & Release Payment
+              {isUk ? 'Прийняти роботу та виплатити кошти' : 'Approve Work & Release Payment'}
             </Button>
           )}
 
@@ -246,7 +401,7 @@ export const JobRoomPage: React.FC = () => {
           {job.paymentState !== 'disputed' && ['in_progress', 'delivered'].includes(job.status) && (
             <Button size="sm" variant="danger" onClick={() => setDisputeModalOpen(true)}>
               <AlertTriangle className="w-4 h-4 mr-1" />
-              Open Dispute
+              {isUk ? 'Відкрити спір / арбітраж' : 'Open Dispute'}
             </Button>
           )}
 
@@ -254,7 +409,7 @@ export const JobRoomPage: React.FC = () => {
           {['funded', 'in_progress'].includes(job.status) && (
             <Button size="sm" variant="outline" onClick={() => setProposePriceModalOpen(true)}>
               <DollarSign className="w-4 h-4 mr-1" />
-              Propose Amount Change
+              {isUk ? 'Змінити вартість робіт' : 'Propose Amount Change'}
             </Button>
           )}
         </div>
@@ -270,7 +425,7 @@ export const JobRoomPage: React.FC = () => {
             }}
           >
             <Share2 className="w-3.5 h-3.5 mr-1" />
-            Share Status
+            {isUk ? 'Поділитися статусом' : 'Share Status'}
           </Button>
         </div>
       </div>
@@ -280,7 +435,7 @@ export const JobRoomPage: React.FC = () => {
         <div className="md:col-span-2 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="font-bold text-base text-foreground">
-              Milestones & Releases
+              {isUk ? 'Етапи та виплати' : 'Milestones & Releases'}
             </h3>
           </div>
           <MilestoneList
@@ -296,18 +451,18 @@ export const JobRoomPage: React.FC = () => {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="font-bold text-base text-foreground">
-              Work Photos ({evidence.length})
+              {isUk ? `Фотофіксація (${evidence.length})` : `Work Photos (${evidence.length})`}
             </h3>
             <Button size="sm" variant="outline" onClick={() => setUploadModalOpen(true)}>
               <Upload className="w-3.5 h-3.5 mr-1" />
-              Add Photo
+              {isUk ? '+ Додати фото' : '+ Add Photo'}
             </Button>
           </div>
 
           <div className="space-y-2">
             {evidence.length === 0 ? (
               <div className="p-6 rounded-xl border border-dashed border-border text-center text-xs text-muted-foreground">
-                No work photos uploaded yet.
+                {isUk ? 'Фотофіксації робіт ще не завантажено.' : 'No work photos uploaded yet.'}
               </div>
             ) : (
               evidence.map((evi) => (
@@ -333,6 +488,93 @@ export const JobRoomPage: React.FC = () => {
         </div>
       </div>
 
+      {/* 4.5 Bilateral Review & Rating Section (When job is approved or paid out) */}
+      {['approved', 'paid_out'].includes(job.status) && (
+        <div className="p-6 rounded-3xl border border-border bg-card shadow-soft space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
+              <h3 className="font-bold text-base text-foreground">
+                {isUk ? 'Двосторонній відгук та рейтинг замовлення' : 'Bilateral Review & Trust Rating'}
+              </h3>
+            </div>
+            <Badge variant="success">
+              {isUk ? 'Замовлення завершено' : 'Contract Finalized'}
+            </Badge>
+          </div>
+
+          {reviewSubmitted || (role === 'customer' ? job.reviewedByCustomer : job.reviewedByWorker) ? (
+            <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-800 dark:text-emerald-200 flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <span>
+                {isUk
+                  ? 'Дякуємо! Ваш відгук успішно додано до профілю та враховано в розрахунку Trust Score.'
+                  : 'Thank you! Your verified feedback has been published to the profile and factored into the Trust Score.'}
+              </span>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-xs text-muted-foreground">
+                {isUk
+                  ? 'Оцініть якість співпраці. Відгуки формують об’єктивну репутацію та підвищують Trust Score:'
+                  : 'Rate your project collaboration. Bilateral ratings build verifiable market reputation:'}
+              </p>
+
+              {/* Star Rating Selector */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-foreground mr-2">
+                  {isUk ? 'Оцінка:' : 'Rating:'}
+                </span>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setRatingScore(star)}
+                    className="p-1 hover:scale-110 transition-transform"
+                  >
+                    <Star
+                      className={`w-6 h-6 ${
+                        star <= ratingScore
+                          ? 'text-amber-500 fill-amber-500'
+                          : 'text-muted-foreground/40'
+                      }`}
+                    />
+                  </button>
+                ))}
+                <span className="text-xs font-bold text-amber-600 dark:text-amber-400 ml-2">
+                  {ratingScore} / 5.0
+                </span>
+              </div>
+
+              {/* Review Comment */}
+              <div>
+                <textarea
+                  rows={2}
+                  value={reviewComment}
+                  onChange={(e) => setReviewComment(e.target.value)}
+                  placeholder={
+                    isUk
+                      ? 'Опишіть враження від роботи (пунктуальність, якість, дотримання домовленостей)...'
+                      : 'Share your feedback (punctuality, craftsmanship, adherence to contract)...'
+                  }
+                  className="w-full bg-background border border-border rounded-xl p-3 text-xs text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
+                />
+              </div>
+
+              <Button
+                variant="primary"
+                size="sm"
+                isLoading={submittingReview}
+                onClick={handleSubmitReview}
+              >
+                <CheckCircle2 className="w-4 h-4 mr-1.5" />
+                {isUk ? 'Надіслати відгук' : 'Submit Review'}
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* 5. Tabs: Chat, Documents, Audit Trail */}
       <div className="p-6 rounded-3xl border border-border bg-card shadow-soft space-y-4">
         <div className="flex items-center gap-2 border-b border-border pb-3">
@@ -345,7 +587,7 @@ export const JobRoomPage: React.FC = () => {
                 : 'text-muted-foreground hover:bg-muted'
             }`}
           >
-            Communication ({messages.length})
+            {isUk ? `Чат та зв'язок (${messages.length})` : `Communication (${messages.length})`}
           </button>
 
           <button
@@ -357,7 +599,7 @@ export const JobRoomPage: React.FC = () => {
                 : 'text-muted-foreground hover:bg-muted'
             }`}
           >
-            Documents ({documents.length})
+            {isUk ? `Документи (${documents.length})` : `Documents (${documents.length})`}
           </button>
 
           <button
@@ -369,7 +611,7 @@ export const JobRoomPage: React.FC = () => {
                 : 'text-muted-foreground hover:bg-muted'
             }`}
           >
-            Audit Trail
+            {isUk ? 'Журнал подій (Аудит)' : 'Audit Trail'}
           </button>
         </div>
 
@@ -380,8 +622,14 @@ export const JobRoomPage: React.FC = () => {
             <div className="p-3.5 rounded-2xl bg-teal-500/10 border border-teal-500/20 text-xs text-teal-800 dark:text-teal-200 flex items-start gap-2.5">
               <ShieldCheck className="w-4 h-4 shrink-0 text-teal-600 dark:text-teal-400 mt-0.5" />
               <div>
-                <span className="font-bold block">Protected Chat & Gemini Safety Filter:</span>
-                <span>Phone numbers, emails, and external payment links are automatically masked to keep your payment protected by WorkHub Escrow, Diia.Signature contracts, and work insurance.</span>
+                <span className="font-bold block">
+                  {isUk ? 'Захищений чат та фільтр контактів Gemini:' : 'Protected Chat & Gemini Safety Filter:'}
+                </span>
+                <span>
+                  {isUk
+                    ? 'Номери телефонів, e-mail та зовнішні посилання маскуються автоматично для захисту угоди ескроу, підписами Дія.Підпис та страхуванням робіт.'
+                    : 'Phone numbers, emails, and external payment links are automatically masked to keep your payment protected by WorkHub Escrow, Diia.Signature contracts, and work insurance.'}
+                </span>
               </div>
             </div>
 
@@ -395,7 +643,7 @@ export const JobRoomPage: React.FC = () => {
                   return (
                     <div key={m.id} className="text-center my-2">
                       <span className="px-3 py-1 rounded-full bg-muted text-[11px] text-muted-foreground font-medium">
-                        {m.systemKey ? t(`jobs.stepper.${m.systemKey}`) : 'System update'}
+                        {m.systemKey ? t(`jobs.stepper.${m.systemKey}`) : isUk ? 'Оновлення системи' : 'System update'}
                       </span>
                     </div>
                   );
@@ -416,7 +664,7 @@ export const JobRoomPage: React.FC = () => {
                       {m.text}
                       {m.masked && (
                         <span className="block text-[10px] opacity-75 mt-1 font-mono">
-                          [Contact information protected by WorkHub]
+                          {isUk ? '[Контактні дані захищено WorkHub]' : '[Contact information protected by WorkHub]'}
                         </span>
                       )}
                     </div>
@@ -434,7 +682,11 @@ export const JobRoomPage: React.FC = () => {
                 type="text"
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
-                placeholder="Type a message (contact numbers & links are automatically masked)..."
+                placeholder={
+                  isUk
+                    ? 'Введіть повідомлення (контакти й посилання маскуються автоматично)...'
+                    : 'Type a message (contact numbers & links are automatically masked)...'
+                }
                 className="flex-1 bg-background border border-border rounded-xl px-4 py-2.5 text-xs text-foreground focus:ring-2 focus:ring-primary focus:outline-none"
               />
               <Button type="submit" variant="primary" size="md" isLoading={sendingMsg}>
@@ -455,12 +707,16 @@ export const JobRoomPage: React.FC = () => {
               >
                 <div className="flex items-center gap-2 text-primary font-bold text-xs">
                   <FileText className="w-4 h-4" />
-                  <span>Service Agreement</span>
+                  <span>{isUk ? 'Договір послуг / підряду' : 'Service Agreement'}</span>
                 </div>
                 <p className="text-[11px] text-muted-foreground">
-                  Pre-job contract generated from {pack.code} legal template.
+                  {isUk
+                    ? `Двосторонній контракт, сформований за юридичним шаблоном ${pack.code}.`
+                    : `Pre-job contract generated from ${pack.code} legal template.`}
                 </p>
-                <span className="text-xs font-semibold text-primary block">Inspect Document →</span>
+                <span className="text-xs font-semibold text-primary block">
+                  {isUk ? 'Переглянути документ →' : 'Inspect Document →'}
+                </span>
               </button>
 
               <button
@@ -470,12 +726,16 @@ export const JobRoomPage: React.FC = () => {
               >
                 <div className="flex items-center gap-2 text-emerald-600 font-bold text-xs">
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>Completion Act</span>
+                  <span>{isUk ? 'Акт виконаних робіт' : 'Completion Act'}</span>
                 </div>
                 <p className="text-[11px] text-muted-foreground">
-                  Official bilateral acceptance act for accounting.
+                  {isUk
+                    ? 'Офіційний двосторонній акт приймання-передачі для бухгалтерії.'
+                    : 'Official bilateral acceptance act for accounting.'}
                 </p>
-                <span className="text-xs font-semibold text-primary block">Inspect Document →</span>
+                <span className="text-xs font-semibold text-primary block">
+                  {isUk ? 'Переглянути документ →' : 'Inspect Document →'}
+                </span>
               </button>
 
               <button
@@ -485,12 +745,16 @@ export const JobRoomPage: React.FC = () => {
               >
                 <div className="flex items-center gap-2 text-blue-600 font-bold text-xs">
                   <DollarSign className="w-4 h-4" />
-                  <span>Invoice / Receipt</span>
+                  <span>{isUk ? 'Рахунок / Чек' : 'Invoice / Receipt'}</span>
                 </div>
                 <p className="text-[11px] text-muted-foreground">
-                  Withholding receipt & contractor payout documentation.
+                  {isUk
+                    ? 'Фіскальна квитанція та розрахунковий документ виплати.'
+                    : 'Withholding receipt & contractor payout documentation.'}
                 </p>
-                <span className="text-xs font-semibold text-primary block">Inspect Document →</span>
+                <span className="text-xs font-semibold text-primary block">
+                  {isUk ? 'Переглянути документ →' : 'Inspect Document →'}
+                </span>
               </button>
             </div>
           </div>
@@ -500,10 +764,12 @@ export const JobRoomPage: React.FC = () => {
         {activeTab === 'audit' && (
           <div className="space-y-2">
             <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-2">
-              Immutable System Events:
+              {isUk ? 'Незмінні системні події (Ledger):' : 'Immutable System Events:'}
             </span>
             {audit.length === 0 ? (
-              <div className="text-xs text-muted-foreground p-4">No audit events logged yet.</div>
+              <div className="text-xs text-muted-foreground p-4">
+                {isUk ? 'Подій аудиту ще немає.' : 'No audit events logged yet.'}
+              </div>
             ) : (
               audit.map((aud) => (
                 <div key={aud.id} className="p-2.5 rounded-lg border border-border bg-muted/20 text-xs flex justify-between">
@@ -520,7 +786,7 @@ export const JobRoomPage: React.FC = () => {
       <Modal
         open={previewDoc != null}
         onClose={() => setPreviewDoc(null)}
-        title={previewDoc?.title || 'Document Preview'}
+        title={previewDoc?.title || (isUk ? 'Перегляд документа' : 'Document Preview')}
         maxWidth="2xl"
       >
         {previewDoc && (
@@ -533,7 +799,9 @@ export const JobRoomPage: React.FC = () => {
             <div className="p-3 rounded-2xl bg-teal-500/10 border border-teal-500/30 text-xs flex items-center justify-between">
               <div className="flex items-center gap-2 text-teal-800 dark:text-teal-200">
                 <ShieldCheck className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-                <span className="font-semibold">Diia.Signature (Дія.Підпис) Verified</span>
+                <span className="font-semibold">
+                  {pack.code === 'UA' ? 'Дія.Підпис (Diia.Signature) Верифіковано' : `${pack.identity.providerName} Verified`}
+                </span>
               </div>
               <span className="text-[10px] text-muted-foreground font-mono">QES • Sovereign Ledger Timestamped</span>
             </div>
@@ -542,10 +810,10 @@ export const JobRoomPage: React.FC = () => {
               <Button
                 variant="primary"
                 onClick={() => {
-                  alert(`Simulated PDF generated: ${previewDoc.number}.pdf downloaded with Diia.Signature verification.`);
+                  alert(isUk ? `Згенеровано перевірений PDF: ${previewDoc.number}.pdf` : `Simulated PDF generated: ${previewDoc.number}.pdf`);
                 }}
               >
-                Download Verified PDF
+                {isUk ? 'Завантажити завірений PDF' : 'Download Verified PDF'}
               </Button>
             </div>
           </div>
@@ -556,55 +824,55 @@ export const JobRoomPage: React.FC = () => {
       <Modal
         open={disputeModalOpen}
         onClose={() => setDisputeModalOpen(false)}
-        title="Open Formal Arbitration Dispute"
+        title={isUk ? 'Відкрити арбітражний спір' : 'Open Formal Arbitration Dispute'}
       >
         <div className="space-y-4 text-sm">
           <div>
             <label className="text-xs font-semibold text-foreground block mb-1">
-              Dispute Reason:
+              {isUk ? 'Причина спору:' : 'Dispute Reason:'}
             </label>
             <select
               value={disputeReason}
               onChange={(e) => setDisputeReason(e.target.value)}
               className="w-full bg-background border border-border rounded-xl px-3 py-2 text-xs"
             >
-              <option value="quality">Quality issue / defects</option>
-              <option value="late">Unacceptable delay</option>
-              <option value="not_completed">Abandoned / uncompleted work</option>
-              <option value="scope">Scope disagreement</option>
+              <option value="quality">{isUk ? 'Неякісно виконана робота / дефекти' : 'Quality issue / defects'}</option>
+              <option value="late">{isUk ? 'Неприпустима затримка строків' : 'Unacceptable delay'}</option>
+              <option value="not_completed">{isUk ? 'Роботу покинуто / не завершено' : 'Abandoned / uncompleted work'}</option>
+              <option value="scope">{isUk ? 'Невідповідність погодженому обсягу' : 'Scope disagreement'}</option>
             </select>
           </div>
 
           <div>
             <label className="text-xs font-semibold text-foreground block mb-1">
-              Desired Outcome:
+              {isUk ? 'Бажане рішення:' : 'Desired Outcome:'}
             </label>
             <select
               value={disputeOutcome}
               onChange={(e) => setDisputeOutcome(e.target.value)}
               className="w-full bg-background border border-border rounded-xl px-3 py-2 text-xs"
             >
-              <option value="rework">Contractor rework</option>
-              <option value="partial_refund">Partial refund</option>
-              <option value="full_refund">Full refund</option>
+              <option value="rework">{isUk ? 'Доопрацювання виконавцем' : 'Contractor rework'}</option>
+              <option value="partial_refund">{isUk ? 'Часткове повернення коштів' : 'Partial refund'}</option>
+              <option value="full_refund">{isUk ? 'Повне повернення коштів' : 'Full refund'}</option>
             </select>
           </div>
 
           <div>
             <label className="text-xs font-semibold text-foreground block mb-1">
-              Detailed Description & Evidence:
+              {isUk ? 'Детальний опис та аргументи:' : 'Detailed Description & Evidence:'}
             </label>
             <textarea
               rows={3}
               value={disputeDesc}
               onChange={(e) => setDisputeDesc(e.target.value)}
-              placeholder="Describe the defect or discrepancy..."
+              placeholder={isUk ? 'Опишіть виявлені дефекти або обставини...' : 'Describe the defect or discrepancy...'}
               className="w-full bg-background border border-border rounded-xl p-3 text-xs"
             />
           </div>
 
           <Button variant="danger" className="w-full" onClick={handleOpenDispute}>
-            Submit Dispute to Platform Arbitration
+            {isUk ? 'Надіслати спір до арбітражу платформи' : 'Submit Dispute to Platform Arbitration'}
           </Button>
         </div>
       </Modal>
@@ -613,24 +881,58 @@ export const JobRoomPage: React.FC = () => {
       <Modal
         open={uploadModalOpen}
         onClose={() => setUploadModalOpen(false)}
-        title="Upload Work Photo Evidence"
+        title={isUk ? 'Завантажити фотофіксацію виконаних робіт' : 'Upload Work Photo Evidence'}
       >
         <div className="space-y-4 text-sm">
           <div>
             <label className="text-xs font-semibold text-foreground block mb-1">
-              Photo Description / Deliverable Tag:
+              {isUk ? 'Опис фото / позначка етапу:' : 'Photo Description / Deliverable Tag:'}
             </label>
             <input
               type="text"
               value={evidenceLabel}
               onChange={(e) => setEvidenceLabel(e.target.value)}
-              placeholder="E.g. Completed drywall joint or paint second coat"
+              placeholder={isUk ? 'Наприклад: Завершено ґрунтування та фарбування першим шаром' : 'E.g. Completed drywall joint or paint second coat'}
               className="w-full bg-background border border-border rounded-xl px-3 py-2 text-xs"
             />
           </div>
 
           <Button variant="primary" className="w-full" onClick={handleUploadEvidence}>
-            Upload Simulated Photo
+            {isUk ? 'Завантажити тестове фото' : 'Upload Simulated Photo'}
+          </Button>
+        </div>
+      </Modal>
+
+      {/* Modal: Propose Price Change */}
+      <Modal
+        open={proposePriceModalOpen}
+        onClose={() => setProposePriceModalOpen(false)}
+        title={isUk ? 'Запропонувати зміну вартості контракту' : 'Propose Contract Amount Change'}
+      >
+        <div className="space-y-4 text-sm">
+          <div>
+            <label className="text-xs font-semibold text-foreground block mb-1">
+              {isUk ? `Нова запропонована сума (${pack.currency.symbol}):` : `New Proposed Amount (${pack.currency.symbol}):`}
+            </label>
+            <input
+              type="number"
+              value={newProposedPrice}
+              onChange={(e) => setNewProposedPrice(Number(e.target.value))}
+              className="w-full bg-background border border-border rounded-xl px-3 py-2 text-sm font-bold"
+            />
+          </div>
+
+          <Button
+            variant="primary"
+            className="w-full"
+            onClick={async () => {
+              if (!currentUser) return;
+              await getServices().jobs.proposeAmount(job.id, currentUser.id, newProposedPrice);
+              setProposePriceModalOpen(false);
+              await loadRoom();
+            }}
+          >
+            {isUk ? 'Надіслати пропозицію іншій стороні' : 'Submit Amount Change Proposal'}
           </Button>
         </div>
       </Modal>

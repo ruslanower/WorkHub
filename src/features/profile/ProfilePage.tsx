@@ -101,30 +101,40 @@ export const ProfilePage: React.FC = () => {
 
         {/* Headline & Bio */}
         <div className="p-4 rounded-2xl bg-muted/30 border border-border/80 text-xs text-muted-foreground leading-relaxed">
-          {currentUser.headline?.en || 'Licensed and certified contractor specializing in residential and commercial maintenance.'}
+          {locale === 'uk' && currentUser.headline?.uk
+            ? currentUser.headline.uk
+            : currentUser.headline?.en || (locale === 'uk' ? 'Ліцензований та сертифікований майстер з комплексного ремонту та обслуговування.' : 'Licensed and certified contractor specializing in residential and commercial maintenance.')}
         </div>
 
         {/* Quick Stats Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2">
           <div className="p-3 rounded-xl border border-border bg-card text-center">
-            <span className="text-[11px] text-muted-foreground block font-medium">Completed Jobs</span>
+            <span className="text-[11px] text-muted-foreground block font-medium">
+              {locale === 'uk' ? 'Виконаних робіт' : 'Completed Jobs'}
+            </span>
             <span className="text-lg font-bold text-foreground">{currentUser.completedJobs}</span>
           </div>
 
           <div className="p-3 rounded-xl border border-border bg-card text-center">
-            <span className="text-[11px] text-muted-foreground block font-medium">Client Rating</span>
+            <span className="text-[11px] text-muted-foreground block font-medium">
+              {locale === 'uk' ? 'Рейтинг клієнтів' : 'Client Rating'}
+            </span>
             <span className="text-lg font-bold text-amber-600 dark:text-amber-400">
               ★ {currentUser.rating || '5.0'}
             </span>
           </div>
 
           <div className="p-3 rounded-xl border border-border bg-card text-center">
-            <span className="text-[11px] text-muted-foreground block font-medium">Response Speed</span>
-            <span className="text-lg font-bold text-foreground">~{currentUser.responseMinutes} min</span>
+            <span className="text-[11px] text-muted-foreground block font-medium">
+              {locale === 'uk' ? 'Час відповіді' : 'Response Speed'}
+            </span>
+            <span className="text-lg font-bold text-foreground">~{currentUser.responseMinutes} {locale === 'uk' ? 'хв' : 'min'}</span>
           </div>
 
           <div className="p-3 rounded-xl border border-border bg-card text-center">
-            <span className="text-[11px] text-muted-foreground block font-medium">Disputes Lost</span>
+            <span className="text-[11px] text-muted-foreground block font-medium">
+              {locale === 'uk' ? 'Програних спорів' : 'Disputes Lost'}
+            </span>
             <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
               {currentUser.disputesLost}
             </span>
@@ -135,17 +145,18 @@ export const ProfilePage: React.FC = () => {
       {/* 2. Skills & Verified Trade Licenses */}
       <div className="p-6 rounded-3xl border border-border bg-card shadow-soft space-y-4">
         <h3 className="font-bold text-base text-foreground">
-          Verified Trade Licenses & Skills
+          {locale === 'uk' ? 'Підтверджені фахові допуски та навички' : 'Verified Trade Licenses & Skills'}
         </h3>
 
         <div className="flex flex-wrap gap-2">
-          {['Construction and repair', 'Electrical certified', 'Drywall & finishing', 'Commercial painting', 'Equipment mounting'].map(
-            (skill, i) => (
-              <Badge key={i} variant="secondary" className="px-3 py-1 text-xs">
-                {skill}
-              </Badge>
-            ),
-          )}
+          {(locale === 'uk'
+            ? ['Будівництво та ремонт', 'Сертифікований електрик', 'Гіпсокартон і оздоблення', 'Комерційне фарбування', 'Монтаж обладнання']
+            : ['Construction and repair', 'Electrical certified', 'Drywall & finishing', 'Commercial painting', 'Equipment mounting']
+          ).map((skill, i) => (
+            <Badge key={i} variant="secondary" className="px-3 py-1 text-xs">
+              {skill}
+            </Badge>
+          ))}
         </div>
       </div>
 
@@ -155,14 +166,18 @@ export const ProfilePage: React.FC = () => {
           <div className="flex items-center gap-2">
             <MessageSquare className="w-4 h-4 text-primary" />
             <h3 className="font-bold text-base text-foreground">
-              Client Feedback & Bilateral Reviews ({reviews.length})
+              {locale === 'uk'
+                ? `Відгуки клієнтів та двостороння оцінка (${reviews.length})`
+                : `Client Feedback & Bilateral Reviews (${reviews.length})`}
             </h3>
           </div>
         </div>
 
         {reviews.length === 0 ? (
           <div className="text-center py-6 text-xs text-muted-foreground">
-            No bilateral reviews yet. Reviews are unlocked automatically after protected payouts.
+            {locale === 'uk'
+              ? 'Двосторонніх відгуків ще немає. Відгуки стають доступними автоматично після завершення захищеної виплати.'
+              : 'No bilateral reviews yet. Reviews are unlocked automatically after protected payouts.'}
           </div>
         ) : (
           <div className="space-y-3">

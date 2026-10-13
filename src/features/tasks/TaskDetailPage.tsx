@@ -29,7 +29,7 @@ import {
 export const TaskDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { pack, locale, role, currentUser } = useAppStore();
+  const { pack, locale, role, currentUser, countryCode } = useAppStore();
   const { t } = useTranslation();
 
   const [task, setTask] = React.useState<TaskWithMeta | null>(null);
@@ -145,6 +145,32 @@ export const TaskDetailPage: React.FC = () => {
     }
   };
 
+  const handleGenerateTestOffer = async () => {
+    if (!task) return;
+    try {
+      const allUsers = await getServices().users.list({ countryCode });
+      const workerCandidates = allUsers.filter((u) => u.accountType === 'worker');
+      const workerToUse = workerCandidates[offers.length % (workerCandidates.length || 1)] || allUsers[0];
+      if (!workerToUse) return;
+
+      const testBid = Math.round(task.budget * (0.9 + (offers.length % 3) * 0.05));
+      await getServices().offers.create({
+        taskId: task.id,
+        workerId: workerToUse.id,
+        price: testBid,
+        etaDays: 2 + (offers.length % 2),
+        message:
+          locale === 'uk'
+            ? 'Маю весь необхідний професійний інструмент та досвід понад 7 років. Готовий розпочати завтра зранку.'
+            : 'Have all professional tools and 7+ years of experience. Ready to start tomorrow morning.',
+        availableFrom: new Date().toISOString(),
+      });
+      await loadData();
+    } catch {
+      //
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-fade-in py-2">
       {/* 1. Header & Navigation Back */}
@@ -163,8 +189,14 @@ export const TaskDetailPage: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            <Badge variant="secondary">Level {task.minVerificationLevel} required</Badge>
-            {task.isFlagship && <Badge variant="default">Flagship Demo</Badge>}
+            <Badge variant="secondary">
+              {locale === 'uk' ? `Потрібен рівень L${task.minVerificationLevel}` : `Level ${task.minVerificationLevel} required`}
+            </Badge>
+            {task.isFlagship && (
+              <Badge variant="default">
+                {locale === 'uk' ? 'Флагманське демо' : 'Flagship Demo'}
+              </Badge>
+            )}
           </div>
         </div>
 
@@ -177,7 +209,9 @@ export const TaskDetailPage: React.FC = () => {
       <div className="p-6 rounded-3xl border border-border bg-card shadow-soft space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-border">
           <div>
-            <span className="text-xs text-muted-foreground block font-medium">Customer Budget</span>
+            <span className="text-xs text-muted-foreground block font-medium">
+              {locale === 'uk' ? 'Бюджет замовника' : 'Customer Budget'}
+            </span>
             <span className="text-2xl font-bold tracking-tight text-foreground">
               {formatCurrency(task.budget, pack, locale)}
             </span>
@@ -198,14 +232,16 @@ export const TaskDetailPage: React.FC = () => {
 
             <div className="flex items-center gap-1.5">
               <Clock className="w-4 h-4 text-primary" />
-              <span>{task.durationHours} hours</span>
+              <span>{task.durationHours} {locale === 'uk' ? 'год.' : 'hours'}</span>
             </div>
           </div>
         </div>
 
         {/* Task Description */}
         <div className="space-y-2">
-          <h3 className="font-semibold text-sm text-foreground">Task Scope & Description:</h3>
+          <h3 className="font-semibold text-sm text-foreground">
+            {locale === 'uk' ? 'Опис та обсяг робіт:' : 'Task Scope & Description:'}
+          </h3>
           <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
             {getLocalizedText(task.description, locale)}
           </p>
@@ -215,7 +251,7 @@ export const TaskDetailPage: React.FC = () => {
         {task.milestonePlan && task.milestonePlan.length > 0 && (
           <div className="space-y-3 pt-2">
             <h4 className="font-semibold text-xs text-muted-foreground uppercase tracking-wider">
-              Deliverable Milestones:
+              {locale === 'uk' ? 'Етапи виконання:' : 'Deliverable Milestones:'}
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {task.milestonePlan.map((m: MilestonePlanItem, idx: number) => (
@@ -224,7 +260,7 @@ export const TaskDetailPage: React.FC = () => {
                     {idx + 1}. {getLocalizedText(m.title, locale)}
                   </span>
                   <span className="text-muted-foreground">
-                    Weight: {Math.round(m.share * 100)}% of total job
+                    {locale === 'uk' ? 'Частка:' : 'Weight:'} {Math.round(m.share * 100)}%
                   </span>
                 </div>
               ))}
@@ -236,7 +272,9 @@ export const TaskDetailPage: React.FC = () => {
         {role === 'worker' && task.status === 'open' && (
           <div className="pt-4 border-t border-border flex items-center justify-between">
             <div className="text-xs text-muted-foreground">
-              Submit your price and schedule proposal. All payments are held in trust.
+              {locale === 'uk'
+                ? 'Подайте свою ціну та термін. Оплата захищена ескроу-партнером.'
+                : 'Submit your price and schedule proposal. All payments are held in trust.'}
             </div>
             <Button size="lg" variant="primary" onClick={() => setOfferModalOpen(true)}>
               {t('common.actions.makeOffer')}
@@ -251,18 +289,51 @@ export const TaskDetailPage: React.FC = () => {
           <div className="flex items-center gap-2">
             <MessageSquare className="w-5 h-5 text-primary" />
             <h3 className="text-lg font-bold text-foreground">
-              Candidate Proposals & ML Matchmaker ({offers.length})
+              {locale === 'uk'
+                ? `Пропозиції кандидатів та AI Matchmaker (${offers.length})`
+                : `Candidate Proposals & ML Matchmaker (${offers.length})`}
             </h3>
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-teal-700 dark:text-teal-300 font-semibold bg-teal-500/10 px-3 py-1 rounded-full border border-teal-500/20">
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span>Ranked by Vertex AI (Proximity • Trust • Skills • Veteran Boost)</span>
+          <div className="flex items-center gap-2">
+            {/* Quick Test Action: Generate Mock Proposal */}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleGenerateTestOffer}
+              className="text-xs font-semibold text-teal-700 dark:text-teal-300 border-teal-500/40 bg-teal-50/50 dark:bg-teal-950/30"
+              title="Add a test proposal from an accredited contractor to test the hiring flow"
+            >
+              <Sparkles className="w-3.5 h-3.5 mr-1.5 text-amber-500" />
+              <span>{locale === 'uk' ? '+ Додати тестову пропозицію' : '+ Add Test Offer'}</span>
+            </Button>
+
+            <div className="hidden lg:flex items-center gap-1.5 text-xs text-teal-700 dark:text-teal-300 font-semibold bg-teal-500/10 px-3 py-1 rounded-full border border-teal-500/20">
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span>
+                {locale === 'uk'
+                  ? 'Vertex AI (Близькість • Довіра • Навички)'
+                  : 'Ranked by Vertex AI (Proximity • Trust • Skills)'}
+              </span>
+            </div>
           </div>
         </div>
 
         {offers.length === 0 ? (
-          <div className="p-6 rounded-2xl border border-dashed border-border text-center text-sm text-muted-foreground">
-            No proposals submitted yet. Contractors are currently reviewing the task.
+          <div className="p-8 rounded-2xl border border-dashed border-border text-center space-y-3">
+            <p className="text-sm text-muted-foreground">
+              {locale === 'uk'
+                ? 'Пропозицій ще не подано. Виконавці наразі оцінюють завдання.'
+                : 'No proposals submitted yet. Contractors are currently reviewing the task.'}
+            </p>
+            <Button
+              size="sm"
+              variant="primary"
+              onClick={handleGenerateTestOffer}
+              className="mx-auto text-xs"
+            >
+              <Sparkles className="w-3.5 h-3.5 mr-1 text-amber-400" />
+              <span>{locale === 'uk' ? 'Згенерувати пропозицію для тесту найму' : 'Generate Test Offer to Try Hiring'}</span>
+            </Button>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -305,22 +376,22 @@ export const TaskDetailPage: React.FC = () => {
           {/* Live Fee Preview */}
           <div className="p-3 rounded-xl bg-primary/10 border border-primary/20 space-y-1 text-xs">
             <div className="flex justify-between font-semibold text-foreground">
-              <span>Gross Bid:</span>
+              <span>{locale === 'uk' ? 'Ваша ціна:' : 'Gross Bid:'}</span>
               <span>{formatCurrency(feeQuote.amount, pack, locale)}</span>
             </div>
             <div className="flex justify-between text-muted-foreground">
-              <span>Platform Contractor Fee ({pack.fees.workerPct * 100}%):</span>
+              <span>{locale === 'uk' ? `Комісія платформи (${pack.fees.workerPct * 100}%):` : `Platform Contractor Fee (${pack.fees.workerPct * 100}%):`}</span>
               <span>- {formatCurrency(feeQuote.workerFee, pack, locale)}</span>
             </div>
             <div className="flex justify-between font-bold text-primary pt-1 border-t border-primary/20">
-              <span>Net you will receive:</span>
+              <span>{locale === 'uk' ? 'Ви отримаєте на руки:' : 'Net you will receive:'}</span>
               <span>{formatCurrency(feeQuote.workerReceives, pack, locale)}</span>
             </div>
           </div>
 
           <div>
             <label className="text-xs font-semibold text-foreground block mb-1">
-              Estimated Completion Days:
+              {locale === 'uk' ? 'Орієнтовний термін (днів):' : 'Estimated Completion Days:'}
             </label>
             <input
               type="number"
@@ -332,13 +403,13 @@ export const TaskDetailPage: React.FC = () => {
 
           <div>
             <label className="text-xs font-semibold text-foreground block mb-1">
-              Proposal Message & Qualifications:
+              {locale === 'uk' ? 'Коментар до пропозиції та кваліфікація:' : 'Proposal Message & Qualifications:'}
             </label>
             <textarea
               rows={3}
               value={proposalMsg}
               onChange={(e) => setProposalMsg(e.target.value)}
-              placeholder="Explain your approach, tools available, and availability..."
+              placeholder={locale === 'uk' ? 'Опишіть ваш підхід, наявний інструмент та коли готові розпочати...' : 'Explain your approach, tools available, and availability...'}
               className="w-full bg-background border border-border rounded-xl p-3 text-xs text-foreground placeholder:text-muted-foreground resize-none"
             />
           </div>
@@ -357,7 +428,7 @@ export const TaskDetailPage: React.FC = () => {
             isLoading={submittingOffer}
             onClick={handleMakeOffer}
           >
-            Submit Proposal
+            {locale === 'uk' ? 'Надіслати пропозицію' : 'Submit Proposal'}
           </Button>
         </div>
       </Modal>
@@ -366,7 +437,7 @@ export const TaskDetailPage: React.FC = () => {
       <Modal
         open={hireModalOpen}
         onClose={() => setHireModalOpen(false)}
-        title="Electronic Agreement & Protected Payment"
+        title={locale === 'uk' ? 'Електронний договір та захищена оплата' : 'Electronic Agreement & Protected Payment'}
         maxWidth="xl"
       >
         <div className="space-y-5 text-sm">
@@ -374,31 +445,39 @@ export const TaskDetailPage: React.FC = () => {
           <div className="p-4 rounded-xl border border-border bg-muted/30 space-y-2 text-xs">
             <div className="flex items-center gap-2 font-semibold text-foreground">
               <FileCheck2 className="w-4 h-4 text-primary" />
-              <span>Local Service Contract Preview ({pack.code})</span>
+              <span>{locale === 'uk' ? `Офіційний договір послуг (${pack.code})` : `Local Service Contract Preview (${pack.code})`}</span>
             </div>
             <p className="text-muted-foreground leading-relaxed">
-              By hiring this contractor, an electronic service contract is compiled per the local Country Pack template. Funds will be held in trust by {pack.payments.partnerName} and released only upon your explicit milestone approval.
+              {locale === 'uk'
+                ? `Під час найму формується офіційний електронний договір послуг за шаблоном юрисдикції. Кошти утримуються в ескроу партнером ${pack.payments.partnerName} і виплачуються лише після вашого затвердження результату.`
+                : `By hiring this contractor, an electronic service contract is compiled per the local Country Pack template. Funds will be held in trust by ${pack.payments.partnerName} and released only upon your explicit milestone approval.`}
             </p>
           </div>
 
           {/* Payment breakdown */}
           {selectedOfferToHire && (
             <div className="p-4 rounded-xl bg-card border border-border space-y-2 text-xs">
-              <span className="font-semibold text-foreground block">Funding Summary:</span>
+              <span className="font-semibold text-foreground block">
+                {locale === 'uk' ? 'Розрахунок оплати:' : 'Funding Summary:'}
+              </span>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Contractor bid:</span>
+                <span className="text-muted-foreground">
+                  {locale === 'uk' ? 'Вартість робіт майстра:' : 'Contractor bid:'}
+                </span>
                 <span className="font-semibold text-foreground">
                   {formatCurrency(selectedOfferToHire.price, pack, locale)}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Platform client fee ({pack.fees.customerPct * 100}%):</span>
+                <span className="text-muted-foreground">
+                  {locale === 'uk' ? `Комісія замовника (${pack.fees.customerPct * 100}%):` : `Platform client fee (${pack.fees.customerPct * 100}%):`}
+                </span>
                 <span className="font-semibold text-foreground">
                   +{formatCurrency(computeFees(selectedOfferToHire.price, pack).customerFee, pack, locale)}
                 </span>
               </div>
               <div className="flex justify-between text-sm font-bold text-primary pt-2 border-t border-border">
-                <span>Total amount to fund:</span>
+                <span>{locale === 'uk' ? 'Разом до внесення в ескроу:' : 'Total amount to fund:'}</span>
                 <span>{formatCurrency(computeFees(selectedOfferToHire.price, pack).customerPays, pack, locale)}</span>
               </div>
             </div>
@@ -413,7 +492,9 @@ export const TaskDetailPage: React.FC = () => {
               className="mt-0.5 rounded text-primary focus:ring-primary"
             />
             <span className="text-xs text-muted-foreground">
-              I agree to the terms of the service contract and authorize {pack.payments.partnerName} to hold the protected payment in trust.
+              {locale === 'uk'
+                ? `Я погоджуюсь з умовами договору послуг та доручаю ${pack.payments.partnerName} забезпечити безпечну оплату через ескроу.`
+                : `I agree to the terms of the service contract and authorize ${pack.payments.partnerName} to hold the protected payment in trust.`}
             </span>
           </label>
 
@@ -426,7 +507,7 @@ export const TaskDetailPage: React.FC = () => {
             onClick={handleConfirmHireAndFund}
           >
             <Lock className="w-4 h-4 mr-2" />
-            Sign Agreement & Fund ({pack.payments.partnerName})
+            {locale === 'uk' ? `Підписати договір та оплатити (${pack.payments.partnerName})` : `Sign Agreement & Fund (${pack.payments.partnerName})`}
           </Button>
         </div>
       </Modal>

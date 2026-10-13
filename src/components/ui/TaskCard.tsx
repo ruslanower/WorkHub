@@ -8,6 +8,7 @@ import { VerifiedBadge } from './VerifiedBadge';
 import { Badge } from './Badge';
 import { MapPin, Calendar, Clock, Star, MessageSquare } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 interface TaskCardProps {
   task: TaskWithMeta;
@@ -16,6 +17,7 @@ interface TaskCardProps {
 
 export const TaskCard: React.FC<TaskCardProps> = ({ task, className }) => {
   const { pack, locale } = useAppStore();
+  const { t } = useTranslation();
   const category = pack.categories.find((c) => c.id === task.categoryId);
   const city = pack.cities.find((c) => c.id === task.cityId);
 
@@ -42,7 +44,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, className }) => {
           <div className="flex items-center gap-1.5 flex-wrap justify-end">
             {task.isFlagship && (
               <Badge variant="default" className="bg-primary text-primary-foreground font-semibold">
-                Flagship Demo
+                {locale === 'uk' ? 'Флагманське демо' : 'Flagship Demo'}
               </Badge>
             )}
             <VerifiedBadge level={task.minVerificationLevel} showLabel={false} />
@@ -86,14 +88,16 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, className }) => {
       {/* Footer: Budget + Offers count + Action link */}
       <div className="pt-3 border-t border-border flex items-center justify-between">
         <div>
-          <span className="text-[11px] text-muted-foreground block font-medium">Budget</span>
+          <span className="text-[11px] text-muted-foreground block font-medium">
+            {locale === 'uk' ? 'Бюджет' : 'Budget'}
+          </span>
           <span className="text-lg font-bold tracking-tight text-foreground">
             {formatCurrency(task.budget, pack, locale)}
           </span>
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 text-xs text-muted-foreground" title="Submitted proposals">
+          <div className="flex items-center gap-1 text-xs text-muted-foreground" title={locale === 'uk' ? 'Подано пропозицій' : 'Submitted proposals'}>
             <MessageSquare className="w-3.5 h-3.5" />
             <span>{task.offersCount}</span>
           </div>
@@ -102,7 +106,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, className }) => {
             to={`/tasks/${task.id}`}
             className="inline-flex items-center justify-center h-8 px-3 rounded-lg text-xs font-semibold bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
           >
-            Details
+            {locale === 'uk' ? 'Деталі' : 'Details'}
           </Link>
         </div>
       </div>

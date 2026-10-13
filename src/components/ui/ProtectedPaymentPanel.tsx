@@ -77,7 +77,7 @@ export const ProtectedPaymentPanel: React.FC<ProtectedPaymentPanelProps> = ({
               </Badge>
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Funds securely held by <span className="font-medium text-foreground">{pack.payments.partnerName}</span>
+              {t('jobs.paymentPanel.heldBy', { partner: pack.payments.partnerName })}
             </p>
           </div>
         </div>

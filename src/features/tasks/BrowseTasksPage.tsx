@@ -68,11 +68,20 @@ export const BrowseTasksPage: React.FC = () => {
             {t('tasks.browseTitle')}
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Verified physical jobs in {pack.name.en} • {filteredTasks.length} available
+            {locale === 'uk'
+              ? `Перевірені фізичні завдання в ${getLocalizedText(pack.name, locale)} • ${filteredTasks.length} доступно`
+              : `Verified physical jobs in ${getLocalizedText(pack.name, locale)} • ${filteredTasks.length} available`}
           </p>
         </div>
 
         <div className="flex items-center gap-2 self-start sm:self-auto">
+          <Link
+            to="/tasks/new"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary text-primary-foreground text-xs font-semibold shadow-sm hover:bg-primary/90 transition-colors"
+          >
+            <span>+ {t('nav.postTask')}</span>
+          </Link>
+
           {/* List / Map view toggle */}
           <div className="flex items-center p-1 rounded-xl bg-card border border-border shadow-sm">
             <button
@@ -165,9 +174,15 @@ export const BrowseTasksPage: React.FC = () => {
               onChange={(e) => setSortBy(e.target.value as any)}
               className="bg-background border border-border rounded-xl px-3 py-2 text-xs font-medium text-foreground focus:outline-none"
             >
-              <option value="newest">Sort: Newest first</option>
-              <option value="budget_desc">Sort: Highest budget</option>
-              <option value="budget_asc">Sort: Lowest budget</option>
+              <option value="newest">
+                {locale === 'uk' ? 'Сортування: Найновіші' : 'Sort: Newest first'}
+              </option>
+              <option value="budget_desc">
+                {locale === 'uk' ? 'Сортування: Більший бюджет' : 'Sort: Highest budget'}
+              </option>
+              <option value="budget_asc">
+                {locale === 'uk' ? 'Сортування: Менший бюджет' : 'Sort: Lowest budget'}
+              </option>
             </select>
 
             {/* Social Priority filter toggle */}
@@ -179,10 +194,12 @@ export const BrowseTasksPage: React.FC = () => {
                   ? 'bg-verify-soft text-verify border-verify/30 font-semibold'
                   : 'bg-background text-muted-foreground border-border hover:bg-muted'
               }`}
-              title="Show jobs welcoming priority social programs"
+              title={locale === 'uk' ? 'Показати завдання з підтримкою соціальних програм' : 'Show jobs welcoming priority social programs'}
             >
               <HeartHandshake className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Priority Programs</span>
+              <span className="hidden sm:inline">
+                {locale === 'uk' ? 'Пріоритетні програми' : 'Priority Programs'}
+              </span>
             </button>
 
             {/* Reset */}

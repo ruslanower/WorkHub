@@ -23,6 +23,7 @@ import { Link } from 'react-router-dom';
 export const CustomerDashboard: React.FC = () => {
   const { pack, locale, currentUser } = useAppStore();
   const { t } = useTranslation();
+  const isUk = locale === 'uk';
 
   const [activeJobs, setActiveJobs] = React.useState<Job[]>([]);
   const [completedJobs, setCompletedJobs] = React.useState<Job[]>([]);
@@ -53,17 +54,19 @@ export const CustomerDashboard: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-3xl border border-border bg-card shadow-soft">
         <div>
           <h1 className="text-xl font-bold text-foreground">
-            {currentUser?.name.en || 'Customer Dashboard'}
+            {isUk ? 'Кабінет замовника' : 'Customer Dashboard'}
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Manage your physical projects, contractor milestones, and billing
+            {isUk
+              ? 'Керуйте фізичними проектами, етапами робіт та фінансовими розрахунками'
+              : 'Manage your physical projects, contractor milestones, and billing'}
           </p>
         </div>
 
         <Link to="/tasks/new">
           <Button size="md" variant="primary">
             <PlusCircle className="w-4 h-4 mr-2" />
-            Post New Task
+            {isUk ? '+ Створити нове завдання' : 'Post New Task'}
           </Button>
         </Link>
       </div>
@@ -71,23 +74,23 @@ export const CustomerDashboard: React.FC = () => {
       {/* 2. Key Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <KpiTile
-          title="Active Projects"
+          title={isUk ? 'Активні проєкти' : 'Active Projects'}
           value={activeJobs.length}
-          subtext="Protected escrow"
+          subtext={isUk ? 'Захищений ескроу' : 'Protected escrow'}
           icon={<Briefcase className="w-4 h-4 text-primary" />}
         />
 
         <KpiTile
-          title="Total Lifetime Spend"
+          title={isUk ? 'Загальні витрати' : 'Total Lifetime Spend'}
           value={formatCurrency(totalSpent, pack, locale)}
-          subtext="Verified compliance"
+          subtext={isUk ? 'Офіційні розрахунки' : 'Verified compliance'}
           icon={<DollarSign className="w-4 h-4 text-emerald-600" />}
         />
 
         <KpiTile
-          title="Completed Orders"
+          title={isUk ? 'Завершених замовлень' : 'Completed Orders'}
           value={completedJobs.length + 8}
-          subtext="With completion acts"
+          subtext={isUk ? 'З актами приймання' : 'With completion acts'}
           icon={<Repeat className="w-4 h-4 text-blue-600" />}
         />
       </div>
@@ -95,12 +98,14 @@ export const CustomerDashboard: React.FC = () => {
       {/* 3. Active Jobs in Progress */}
       <div className="space-y-4">
         <h3 className="font-bold text-base text-foreground">
-          Current Ongoing Work
+          {isUk ? 'Поточні роботи в процесі' : 'Current Ongoing Work'}
         </h3>
 
         {activeJobs.length === 0 ? (
           <div className="p-8 rounded-2xl border border-dashed border-border text-center text-xs text-muted-foreground bg-card">
-            No active jobs in progress. Post a task to receive bids from verified contractors.
+            {isUk
+              ? 'Активних робіт наразі немає. Створіть завдання або оберіть виконавця у стрічці.'
+              : 'No active jobs in progress. Post a task to receive bids from verified contractors.'}
           </div>
         ) : (
           <div className="space-y-3">
@@ -120,13 +125,13 @@ export const CustomerDashboard: React.FC = () => {
                       {task ? getLocalizedText(task.title, locale) : `Job #${j.id}`}
                     </h4>
                     <span className="text-xs font-semibold text-primary block">
-                      Protected: {formatCurrency(j.amount, pack, locale)}
+                      {isUk ? 'Захищена сума:' : 'Protected:'} {formatCurrency(j.amount, pack, locale)}
                     </span>
                   </div>
 
                   <Link to={`/jobs/${j.id}`}>
                     <Button size="sm" variant="outline">
-                      Open Job Room →
+                      {isUk ? 'Кімната замовлення →' : 'Open Job Room →'}
                     </Button>
                   </Link>
                 </div>
@@ -142,7 +147,7 @@ export const CustomerDashboard: React.FC = () => {
           <div className="flex items-center gap-2">
             <Bookmark className="w-4 h-4 text-primary" />
             <h3 className="font-bold text-base text-foreground">
-              Saved Contractors & "Book Again"
+              {isUk ? 'Перевірені майстри та повторне замовлення' : 'Saved Contractors & "Book Again"'}
             </h3>
           </div>
         </div>
@@ -159,7 +164,9 @@ export const CustomerDashboard: React.FC = () => {
                     {w.initials}
                   </div>
                   <div>
-                    <h4 className="font-semibold text-xs text-foreground">{w.name.en}</h4>
+                    <h4 className="font-semibold text-xs text-foreground">
+                      {isUk && w.name.uk ? w.name.uk : w.name.en}
+                    </h4>
                     <div className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400 font-medium">
                       <Star className="w-3 h-3 fill-current" />
                       <span>{w.rating}</span>
@@ -172,11 +179,11 @@ export const CustomerDashboard: React.FC = () => {
 
               <div className="pt-2 border-t border-border flex items-center justify-between">
                 <span className="text-[11px] text-muted-foreground">
-                  {w.completedJobs} completed jobs
+                  {w.completedJobs} {isUk ? 'виконаних робіт' : 'completed jobs'}
                 </span>
                 <Link to="/tasks/new">
                   <Button size="sm" variant="outline">
-                    Book Again
+                    {isUk ? 'Замовити знову' : 'Book Again'}
                   </Button>
                 </Link>
               </div>

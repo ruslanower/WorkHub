@@ -90,14 +90,22 @@ export const DemoBar: React.FC = () => {
           <select
             value={locale}
             onChange={(e) => setLocale(e.target.value as Locale)}
-            className="bg-slate-800 text-slate-200 border border-slate-700 rounded-md px-1.5 py-1 text-xs uppercase font-medium focus:outline-none cursor-pointer"
+            className="bg-slate-800 text-slate-100 border border-slate-700 rounded-md px-2 py-1 text-xs font-semibold focus:ring-2 focus:ring-teal-400 focus:outline-none cursor-pointer"
             aria-label="Change language"
           >
-            {pack.locales.map((loc) => (
-              <option key={loc} value={loc}>
-                {loc}
-              </option>
-            ))}
+            {pack.locales.map((loc) => {
+              const labels: Record<string, string> = {
+                uk: '🇺🇦 УКР',
+                en: '🇬🇧 ENG',
+                pl: '🇵🇱 POL',
+                sw: '🇰🇪 SWA',
+              };
+              return (
+                <option key={loc} value={loc}>
+                  {labels[loc] || loc.toUpperCase()}
+                </option>
+              );
+            })}
           </select>
 
           {/* Presentation Mode Button */}
